@@ -52,21 +52,15 @@
                         </span>
                     @endif
 
-                    <!-- Tracking Type Badge -->
-                    @if ($product->isIndividuel())
-                        <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-primary-light border border-blue-200">
-                            <x-ui.icon name="tag" class="w-3.5 h-3.5" />
-                            Sérialisé (N° de série individuel)
-                        </span>
-                    @else
-                        <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-accent border border-amber-200">
-                            <x-ui.icon name="boxes" class="w-3.5 h-3.5" />
-                            En quantité (volume de stock)
+                    @if ($product->categorie)
+                        <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-primary border border-blue-200">
+                            <x-ui.icon name="layers" class="w-3.5 h-3.5" />
+                            {{ $product->categorie->nom }}
                         </span>
                     @endif
                 </div>
                 <p class="text-xs text-content-secondary mt-1">
-                    Référence SKU : <code class="font-mono font-semibold text-content px-1.5 py-0.5 rounded bg-surface border border-border">{{ $product->reference }}</code>
+                    Référence : <code class="font-mono font-semibold text-content px-1.5 py-0.5 rounded bg-surface border border-border">{{ $product->reference }}</code>
                 </p>
             </div>
 
@@ -131,7 +125,14 @@
                                 src="{{ $product->photo_url }}"
                                 alt="{{ $product->nom }}"
                                 class="w-full h-full object-cover"
+                                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
                             />
+                            <div class="flex-col items-center justify-center text-content-secondary" style="display:none;">
+                                <div class="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-2">
+                                    <x-ui.icon :name="$product->categorie->icon_name ?? 'package'" class="w-8 h-8" />
+                                </div>
+                                <span class="text-xs text-content-secondary/80">Photo introuvable</span>
+                            </div>
                         @else
                             <div class="flex flex-col items-center justify-center text-content-secondary">
                                 <div class="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-2">
@@ -264,56 +265,51 @@
                     @endif
                 </div>
 
-                <!-- Decoupled Stock & Inventory Placeholder Section -->
+                <!-- Situation actuelle du matériel -->
                 <div class="bg-white rounded-2xl border border-border p-6 shadow-xs">
                     <div class="flex items-center justify-between pb-4 mb-4 border-b border-border">
                         <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-lg bg-accent/10 text-accent flex items-center justify-center">
+                            <div class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
                                 <x-ui.icon name="boxes" class="w-4 h-4" />
                             </div>
                             <div>
                                 <h3 class="text-sm font-bold text-content uppercase tracking-wider">
-                                    Unités physiques & État des stocks
+                                    Situation & Quantités du matériel
                                 </h3>
-                                <p class="text-[11px] text-content-secondary">Traçabilité opérationnelle du matériel</p>
+                                <p class="text-[11px] text-content-secondary">Répartition entre Réserve, Utilisation et Panne</p>
                             </div>
                         </div>
 
-                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-50 text-accent border border-amber-200">
-                            Module 05 &mdash; Stocks & Mouvements
-                        </span>
+                        <a
+                            href="{{ route('it.stocks.index', ['search' => $product->nom]) }}"
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-semibold text-primary hover:bg-surface transition-colors"
+                        >
+                            <x-ui.icon name="refresh-cw" class="w-3.5 h-3.5" />
+                            Gérer le stock
+                        </a>
                     </div>
 
-                    <div class="p-5 rounded-xl bg-surface/70 border border-border text-center">
-                        <div class="w-12 h-12 rounded-xl bg-white mx-auto flex items-center justify-center text-accent mb-3 shadow-2xs border border-border">
-                            <x-ui.icon name="boxes" class="w-6 h-6" />
+                    <!-- 3 Cartes de situation + Total -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div class="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200">
+                            <span class="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block">En stock</span>
+                            <span class="text-xl font-extrabold text-emerald-700 block mt-0.5">{{ $product->quantite_en_stock }}</span>
+                            <span class="text-[10px] text-emerald-600">Disponible en réserve</span>
                         </div>
-
-                        <h4 class="text-sm font-bold text-content">Architecture découplée Catalogue & Stocks</h4>
-                        <p class="text-xs text-content-secondary max-w-lg mx-auto mt-1 leading-relaxed">
-                            Cette fiche produit définit les propriétés permanentes du matériel.
-                            @if ($product->isIndividuel())
-                                L'inventaire des unités physiques (numéros de série individuels, statut disponible / en utilisation / en panne, affectations aux collaborateurs) sera géré lors du déploiement du module Stocks & Mouvements.
-                            @else
-                                La quantité totale en stock, les entrées / sorties par lot et le calcul d'alerte en temps réel (seuil configuré à {{ $product->seuil_minimum }} unités) seront gérés lors du déploiement du module Stocks & Mouvements.
-                            @endif
-                        </p>
-
-                        <div class="mt-4 flex items-center justify-center gap-4 text-xs font-semibold text-content-secondary">
-                            <span class="inline-flex items-center gap-1.5">
-                                <x-ui.icon name="check-circle" class="w-4 h-4 text-emerald-600" />
-                                Modèle catalogué
-                            </span>
-                            <span class="text-border">&bull;</span>
-                            <span class="inline-flex items-center gap-1.5">
-                                <x-ui.icon name="tag" class="w-4 h-4 text-primary" />
-                                Règle : {{ $product->type_suivi_label }}
-                            </span>
-                            <span class="text-border">&bull;</span>
-                            <span class="inline-flex items-center gap-1.5">
-                                <x-ui.icon name="alert-circle" class="w-4 h-4 text-accent" />
-                                Seuil d'alerte : {{ $product->seuil_minimum }}
-                            </span>
+                        <div class="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200">
+                            <span class="text-[11px] font-bold text-primary uppercase tracking-wider block">En utilisation</span>
+                            <span class="text-xl font-extrabold text-primary block mt-0.5">{{ $product->quantite_en_utilisation }}</span>
+                            <span class="text-[10px] text-primary/70">En production</span>
+                        </div>
+                        <div class="p-3.5 rounded-xl bg-rose-50/70 border border-rose-200">
+                            <span class="text-[11px] font-bold text-rose-800 uppercase tracking-wider block">En panne</span>
+                            <span class="text-xl font-extrabold text-rose-600 block mt-0.5">{{ $product->quantite_en_panne }}</span>
+                            <span class="text-[10px] text-rose-600">Hors service</span>
+                        </div>
+                        <div class="p-3.5 rounded-xl bg-surface border border-border">
+                            <span class="text-[11px] font-bold text-content-secondary uppercase tracking-wider block">Total global</span>
+                            <span class="text-xl font-extrabold text-content block mt-0.5">{{ $product->total_stock }}</span>
+                            <span class="text-[10px] text-content-secondary">Total des unités</span>
                         </div>
                     </div>
                 </div>

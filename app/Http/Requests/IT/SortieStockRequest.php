@@ -51,7 +51,7 @@ class SortieStockRequest extends FormRequest
                 'max:2000',
             ],
             'date_mouvement' => [
-                'required',
+                'nullable',
                 'date',
                 'before_or_equal:today',
             ],

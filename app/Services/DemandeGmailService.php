@@ -43,7 +43,7 @@ class DemandeGmailService
     }
 
     /**
-     * Generate the professional email body in French.
+     * Generate the professional email body in French with clear Sender (De) & Recipient (À) identification.
      */
     public function genererCorps(
         Produit $produit,
@@ -51,7 +51,9 @@ class DemandeGmailService
         string $priorite,
         string $motif,
         ?string $commentaire,
-        User $responsableIt
+        User $responsableIt,
+        ?string $destinataireNom = null,
+        ?string $emailDestinataire = null
     ): string {
         $prioriteLabel = match ($priorite) {
             DemandeMateriel::PRIORITE_IMPORTANTE => 'Importante',
@@ -59,39 +61,54 @@ class DemandeGmailService
             default => 'Normale',
         };
 
-        $disponibilite = $produit->total_stock;
-        $uniteTexte = $disponibilite . ' ' . ($disponibilite > 1 ? 'unités' : 'unité');
+        $config = $this->getDirecteurConfig();
+        $destNom = !empty($destinataireNom) ? $destinataireNom : ($config['nom'] ?? 'Direction Générale');
+        $destEmail = !empty($emailDestinataire) ? $emailDestinataire : ($config['email'] ?? 'Non spécifié');
+
+        $senderNom = $responsableIt->name;
+        $senderEmail = $responsableIt->email;
+        $dateEnvoi = now()->format('d/m/Y à H:i');
 
         $categorie = $produit->category->nom ?? ($produit->categorie->nom ?? 'Matériel informatique');
         $designation = $produit->designation ?? $produit->nom;
 
         $lines = [
-            'Bonjour,',
+            '==================================================',
+            'DE (Expéditeur)   : ' . $senderNom . ' <' . $senderEmail . '> (Gestionnaire de stock)',
+            'À  (Destinataire) : ' . $destNom . ' <' . $destEmail . '>',
+            'DATE              : ' . $dateEnvoi,
+            'OBJET             : ' . $this->genererObjet($produit),
+            '==================================================',
             '',
-            'Je souhaite vous soumettre une demande de matériel informatique pour les besoins de l\'entreprise.',
+            'Bonjour ' . $destNom . ',',
             '',
-            'Matériel demandé :',
+            'Je vous soumets une demande de matériel informatique pour les besoins de l\'entreprise.',
+            '',
+            '■ MATÉRIEL DEMANDÉ :',
             '- Produit : ' . $designation,
             '- Référence : ' . $produit->reference,
             '- Catégorie : ' . $categorie,
-            '- Quantité demandée : ' . $quantite,
+            '- Quantité demandée : ' . $quantite . ' unité(s)',
             '- Priorité : ' . $prioriteLabel,
             '',
-            'Situation actuelle :',
-            '- Disponibilité en stock : ' . $uniteTexte,
+            '■ SITUATION DU STOCK ACTUEL :',
+            '- En stock (réserve disponible) : ' . $produit->quantite_en_stock . ' unité(s)',
+            '- En utilisation (postes de travail) : ' . $produit->quantite_en_utilisation . ' unité(s)',
+            '- En panne (hors service) : ' . $produit->quantite_en_panne . ' unité(s)',
+            '- Total suivi : ' . $produit->total_stock . ' unité(s)',
         ];
 
         if ($produit->seuil_minimum > 0) {
-            $lines[] = '- Seuil d\'alerte : ' . $produit->seuil_minimum . ' unités';
+            $lines[] = '- Seuil d\'alerte stock minimum : ' . $produit->seuil_minimum . ' unité(s)';
         }
 
         $lines[] = '';
-        $lines[] = 'Motif de la demande :';
+        $lines[] = '■ MOTIF DE LA DEMANDE :';
         $lines[] = trim($motif);
 
         if (!empty($commentaire)) {
             $lines[] = '';
-            $lines[] = 'Observations complémentaires :';
+            $lines[] = '■ OBSERVATIONS COMPLÉMENTAIRES :';
             $lines[] = trim($commentaire);
         }
 
@@ -100,8 +117,11 @@ class DemandeGmailService
         $lines[] = '';
         $lines[] = 'Cordialement,';
         $lines[] = '';
-        $lines[] = $responsableIt->name;
-        $lines[] = 'Service informatique — IT Manager Pro';
+        $lines[] = '--------------------------------------------------';
+        $lines[] = $senderNom;
+        $lines[] = 'Gestionnaire de stock — Service Informatique';
+        $lines[] = 'VAR du Lassureur';
+        $lines[] = 'E-mail : ' . $senderEmail;
 
         return implode("\r\n", $lines);
     }

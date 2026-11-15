@@ -1,0 +1,465 @@
+================================================================================
+                    STOCK MATÉRIEL - DOCUMENTATION TECHNIQUE & FONCTIONNELLE
+================================================================================
+Date de mise à jour : 15/11/2026
+Entreprise : VAR du Lassureur
+Framework : Laravel 12 (PHP 8.2.12, MySQL, Blade, Tailwind CSS, Alpine.js)
+URL locale de l'application : http://127.0.0.1:8000
+================================================================================
+
+TABLE DES MATIÈRES
+--------------------------------------------------------------------------------
+1. PRÉSENTATION GÉNÉRALE ET OBJECTIFS DU PROJET
+2. COMPTES & DROITS D'ACCÈS
+3. ARCHITECTURE ET SCHÉMA DE LA BASE DE DONNÉES (TOUTES LES TABLES)
+4. RÈGLE MÉTIER DES TROIS SITUATIONS (SIMPLIFICATION DU STOCK)
+5. ARBORESCENCE DÉTAILLÉE DES FICHIERS ET RÔLE DE CHAQUE FICHIER
+6. FONCTIONNEMENT DÉTAILLÉ DE CHAQUE MODULE
+7. GESTION DES FICHIERS MULTIMÉDIA ET PHOTOS MATÉRIEL (WINDOWS FRIENDLY)
+8. MODULE D'ENVOI ET PRÉPARATION D'E-MAILS GMAIL
+9. HISTORIQUE DES CORRECTIONS ET BONNES PRATIQUES DE MAINTENANCE
+
+================================================================================
+1. PRÉSENTATION GÉNÉRALE ET OBJECTIFS DU PROJET
+================================================================================
+L'application "Stock Matériel" (anciennement IT Manager Pro) est une solution
+interne conçue pour l'entreprise "VAR du Lassureur". Elle a pour objectif de gérer
+l'ensemble du parc informatique, des consommables et périphériques de l'entreprise
+avec une simplicité maximale.
+
+Points clés de conception :
+- Élimination complète de la gestion des emplacements physiques dans l'interface
+  utilisateur (les formulaires, filtres, colonnes et boutons "emplacements" ont été
+  retirés car jugés non nécessaires pour la gestion quotidienne de l'entreprise).
+- Conservation transparente de l'intégrité de la base de données : un emplacement
+  technique par défaut ("Stock général" / "Réserve IT") est assigné automatiquement
+  en arrière-plan pour satisfaire les contraintes d'intégrité référentielle (Foreign Keys).
+- Suivi strict en trois situations exclusives par référence produit.
+
+================================================================================
+2. COMPTES & DROITS D'ACCÈS
+================================================================================
+L'application propose deux profils utilisateurs distincts :
+
+1. Administrateur
+   - E-mail : admin@gmail.com
+   - Mot de passe : 123456
+   - Accès : /admin/dashboard
+   - Responsabilités : Gestion des comptes utilisateurs, consultation des logs
+     d'audit et d'activités, configuration des paramètres généraux (ex: adresse e-mail
+     du directeur pour les demandes de matériel).
+
+2. Gestionnaire de Stock / Responsable IT
+   - E-mail : respo@gmail.com
+   - Mot de passe : 123456
+   - Accès : /it/dashboard
+   - Responsabilités : Gestion quotidienne du catalogue de matériels, ajustements
+     de stock, entrées/réceptions de matériel, sorties/affectations, changements
+     de situation (Stock <-> Utilisation <-> Panne), rédaction et transmission des
+     demandes de réapprovisionnement par Gmail, génération des rapports d'inventaire
+     et exports (PDF, Excel, Web).
+
+================================================================================
+3. ARCHITECTURE ET SCHÉMA DE LA BASE DE DONNÉES (TOUTES LES TABLES)
+================================================================================
+
+1. Table `users`
+   Gère l'authentification et les habilitations.
+   - id (BIGINT, PK, AUTO_INCREMENT)
+   - name (VARCHAR 255) : Nom complet de l'utilisateur
+   - email (VARCHAR 255, UNIQUE) : Adresse e-mail de connexion
+   - password (VARCHAR 255) : Mot de passe haché (Bcrypt)
+   - role (VARCHAR 50) : Rôle ('admin' ou 'responsable_it')
+   - status (VARCHAR 30) : Statut du compte ('actif' ou 'inactif')
+   - email_verified_at (TIMESTAMP, NULLABLE)
+   - remember_token (VARCHAR 100, NULLABLE)
+   - created_at, updated_at (TIMESTAMP)
+
+2. Table `categories`
+   Classe les équipements et matériels informatiques.
+   - id (BIGINT, PK, AUTO_INCREMENT)
+   - nom (VARCHAR 100) : Désignation (ex: PC Portables, Claviers & Souris, Écrans...)
+   - code (VARCHAR 50, UNIQUE) : Code interne (ex: CAT-ECR, CAT-LAP)
+   - description (TEXT, NULLABLE) : Description d'usage
+   - icon_name (VARCHAR 50) : Nom de l'icône Lucide (ex: 'monitor', 'keyboard')
+   - statut (VARCHAR 30) : 'actif' ou 'archive'
+   - created_at, updated_at (TIMESTAMP)
+
+3. Table `produits`
+   Catalogue central des matériels gérés par quantité ou sérialisation.
+   - id (BIGINT, PK, AUTO_INCREMENT)
+   - categorie_id (BIGINT, FK -> categories.id)
+   - nom (VARCHAR 150) : Désignation du matériel
+   - marque (VARCHAR 80, NULLABLE) : Fabricant (ex: Dell, Lenovo, HP, Logitech)
+   - modele (VARCHAR 100, NULLABLE) : Modèle précis
+   - reference (VARCHAR 50, UNIQUE) : Référence interne (SKU)
+   - type_suivi (VARCHAR 30) : 'quantite' (lot) ou 'individuel' (par numéro de série)
+   - description (TEXT, NULLABLE) : Présentation générale
+   - caracteristiques (TEXT, NULLABLE) : Spécifications techniques
+   - photo (VARCHAR 255, NULLABLE) : Chemin du visuel stocké
+   - prix_indicatif (DECIMAL 10,2, NULLABLE) : Coût d'achat indicatif unitaire
+   - seuil_minimum (INT, DEFAULT 1) : Seuil déclenchant l'alerte de stock faible
+   - statut (VARCHAR 30, DEFAULT 'actif') : 'actif' ou 'archive'
+   - created_at, updated_at (TIMESTAMP)
+
+4. Table `stocks`
+   Stockage des quantités réelles par produit et par situation.
+   - id (BIGINT, PK, AUTO_INCREMENT)
+   - produit_id (BIGINT, FK -> produits.id)
+   - emplacement_id (BIGINT, FK -> emplacements.id) : Valeur technique automatique
+   - situation (VARCHAR 30, DEFAULT 'en_stock') : 'en_stock', 'en_utilisation', 'en_panne'
+   - quantite (INT, DEFAULT 0) : Nombre d'unités physiques
+   - created_at, updated_at (TIMESTAMP)
+   * INDEX UNIQUE : `stocks_produit_emplacement_situation_unique` (produit_id, emplacement_id, situation)
+     permettant à un même produit d'avoir plusieurs lignes correspondant aux différentes situations.
+
+5. Table `mouvements`
+   Journal d'audit immuable de chaque flux ou changement d'état.
+   - id (BIGINT, PK, AUTO_INCREMENT)
+   - reference (VARCHAR 50, UNIQUE) : Réf mouvement (ex: MVT-20261115-XXXX)
+   - type (VARCHAR 50) : 'entree', 'sortie', 'changement_situation', 'mise_utilisation',
+     'retour_stock', 'declaration_panne', 'remise_service', 'correction_stock'
+   - situation_depart (VARCHAR 30, NULLABLE) : Situation d'origine du flux
+   - situation_arrivee (VARCHAR 30, NULLABLE) : Situation de destination du flux
+   - produit_id (BIGINT, FK -> produits.id)
+   - equipement_id (BIGINT, FK -> equipements.id, NULLABLE)
+   - quantite (INT) : Quantité déplacée
+   - emplacement_source_id (BIGINT, NULLABLE) : Technique
+   - emplacement_destination_id (BIGINT, NULLABLE) : Technique
+   - motif (VARCHAR 255) : Justification de l'opération
+   - beneficiaire (VARCHAR 150, NULLABLE) : Nom de l'employé, service ou poste concerné
+   - commentaire (TEXT, NULLABLE) : Détails complémentaires
+   - user_id (BIGINT, FK -> users.id) : Utilisateur ayant réalisé l'action
+   - date_mouvement (DATE) : Date effective de l'événement
+   - created_at, updated_at (TIMESTAMP)
+
+6. Table `equipements`
+   Unités physiques individuelles tracées par numéro de série / code inventaire.
+   - id (BIGINT, PK, AUTO_INCREMENT)
+   - produit_id (BIGINT, FK -> produits.id)
+   - emplacement_id (BIGINT, FK -> emplacements.id)
+   - numero_serie (VARCHAR 100, UNIQUE)
+   - code_inventaire (VARCHAR 100, UNIQUE)
+   - statut_utilisation (VARCHAR 50) : 'disponible', 'attribue', 'en_reparation', 'reforme'
+   - etat_physique (VARCHAR 50) : 'neuf', 'bon_etat', 'usage', 'endommage', 'hors_service'
+   - date_achat (DATE, NULLABLE)
+   - fin_garantie (DATE, NULLABLE)
+   - notes (TEXT, NULLABLE)
+   - created_at, updated_at (TIMESTAMP)
+
+7. Table `demandes_materiel`
+   Gestion des demandes de matériel et commandes transmises par Gmail.
+   - id (BIGINT, PK, AUTO_INCREMENT)
+   - reference (VARCHAR 50, UNIQUE) : Réf demande (ex: DEM-20261115-XXXX)
+   - produit_id (BIGINT, FK -> produits.id)
+   - user_id (BIGINT, FK -> users.id) : Auteur de la demande
+   - quantite (INT) : Quantité demandée
+   - priorite (VARCHAR 30) : 'normale', 'importante', 'urgente'
+   - motif (VARCHAR 255) : Motif du besoin
+   - commentaire (TEXT, NULLABLE) : Informations additionnelles
+   - statut_preparation (VARCHAR 50) : 'brouillon', 'prete', 'ouverture_gmail', 'envoyee'
+   - produit_designation (VARCHAR 150)
+   - produit_reference (VARCHAR 50)
+   - produit_categorie (VARCHAR 100)
+   - stock_disponible_snapshot (INT) : Photo du stock au moment de la demande
+   - destinataire_nom (VARCHAR 150) : Nom de la personne à qui la demande est adressée
+   - email_destinataire (VARCHAR 255) : Adresse e-mail du destinataire
+   - objet_email (VARCHAR 255) : Sujet généré pour l'e-mail
+   - corps_email (LONGTEXT) : Contenu complet pré-formaté pour Gmail
+   - date_ouverture_gmail (TIMESTAMP, NULLABLE) : Horodatage d'ouverture de l'onglet
+   - est_archive (BOOLEAN, DEFAULT 0) : Archivage logique
+   - created_at, updated_at (TIMESTAMP)
+
+8. Table `emplacements`
+   Table technique d'emplacements (préservée en base, invisible dans l'interface).
+   - id (BIGINT, PK, AUTO_INCREMENT)
+   - nom (VARCHAR 100)
+   - code (VARCHAR 50, UNIQUE)
+   - site (VARCHAR 100, NULLABLE)
+   - description (TEXT, NULLABLE)
+   - statut (VARCHAR 30, DEFAULT 'actif')
+   - created_at, updated_at (TIMESTAMP)
+
+9. Table `app_settings`
+   Paramètres globaux clé-valeur de l'application.
+   - id (BIGINT, PK, AUTO_INCREMENT)
+   - cle (VARCHAR 100, UNIQUE) : Ex 'directeur_email', 'societe_nom'
+   - valeur (TEXT, NULLABLE)
+   - type (VARCHAR 50) : 'string', 'email', 'integer', 'boolean'
+   - label (VARCHAR 150)
+   - description (VARCHAR 255, NULLABLE)
+   - created_at, updated_at (TIMESTAMP)
+
+10. Table `activity_logs`
+    Journal de sécurité et d'audit des actions administratives.
+    - id (BIGINT, PK, AUTO_INCREMENT)
+    - user_id (BIGINT, FK -> users.id, NULLABLE)
+    - module (VARCHAR 50)
+    - action_type (VARCHAR 50)
+    - description (TEXT)
+    - entity_type (VARCHAR 100, NULLABLE)
+    - entity_id (BIGINT, NULLABLE)
+    - entity_name (VARCHAR 150, NULLABLE)
+    - ip_address (VARCHAR 45, NULLABLE)
+    - user_agent (TEXT, NULLABLE)
+    - created_at (TIMESTAMP)
+
+================================================================================
+4. RÈGLE MÉTIER DES TROIS SITUATIONS (SIMPLIFICATION DU STOCK)
+================================================================================
+Le stock de chaque matériel est structuré exclusivement selon trois situations :
+
+1. EN STOCK (`en_stock`) :
+   Unités neuves ou reconditionnées disponibles en réserve, prêtes à être déployées.
+   C'est cette quantité qui détermine l'état de réapprovisionnement :
+   - 0 unité : "Épuisé" (Rupture)
+   - 0 < Quantité <= Seuil minimum : "Stock faible"
+   - Quantité > Seuil minimum : "Disponible" (Normal)
+
+2. EN UTILISATION (`en_utilisation`) :
+   Unités actuellement déployées auprès des collaborateurs, sur les postes de travail
+   ou en production au sein de l'entreprise.
+
+3. EN PANNE (`en_panne`) :
+   Unités défectueuses, hors service ou en attente de réparation / mise au rebut.
+
+Équation fondamentale :
+   TOTAL GLOBAL = EN STOCK + EN UTILISATION + EN PANNE
+
+Exemple concret :
+Pour 20 écrans Dell :
+- En stock = 5
+- En utilisation = 12
+- En panne = 3
+- Total global = 20 unités physiques identifiées.
+
+Opérations autorisées entre situations (sans jamais demander d'emplacement) :
+- "Mise en service" : Déplace X unités de "En stock" vers "En utilisation".
+- "Retour en réserve" : Déplace X unités de "En utilisation" vers "En stock".
+- "Déclaration de panne" : Déplace X unités de "En stock" ou "En utilisation" vers "En panne".
+- "Remise en état" : Déplace X unités de "En panne" vers "En stock".
+
+================================================================================
+5. ARBORESCENCE DÉTAILLÉE DES FICHIERS ET RÔLE DE CHAQUE FICHIER
+================================================================================
+
+├── app/
+│   ├── Http/
+│   │   ├── Controllers/
+│   │   │   ├── Admin/
+│   │   │   │   ├── ActivityLogController.php : Consultation du journal des actions utilisateurs
+│   │   │   │   ├── DashboardController.php   : Tableau de bord administration (statistiques globales)
+│   │   │   │   ├── SettingController.php     : Gestion des paramètres (e-mail de la direction, etc.)
+│   │   │   │   └── UserController.php        : CRUD des utilisateurs, réinitialisation de mot de passe
+│   │   │   ├── IT/
+│   │   │   │   ├── CategoryController.php    : Gestion des catégories de matériel
+│   │   │   │   ├── DashboardController.php   : Tableau de bord IT (indicateurs clés par situation)
+│   │   │   │   ├── DemandeMaterielController.php : Création, aperçu et envoi Gmail des demandes
+│   │   │   │   ├── EquipementController.php  : Gestion des matériels individuels sérialisés
+│   │   │   │   ├── MouvementController.php   : Historique et audit des flux de stock
+│   │   │   │   ├── ProductController.php     : Catalogue matériel (CRUD, photos, consultation)
+│   │   │   │   ├── ReportController.php      : Génération de rapports d'inventaire (PDF, Excel, Web)
+│   │   │   │   └── StockController.php       : Gestion du stock, entrées, sorties, changements de situation
+│   │   │   └── ProfileController.php         : Modification du profil utilisateur connecté
+│   │   ├── Middleware/
+│   │   │   └── CheckRole.php                 : Contrôle d'accès basé sur les rôles ('admin', 'responsable_it')
+│   │   └── Requests/
+│   │       ├── Admin/StoreUserRequest.php, UpdateUserRequest.php
+│   │       └── IT/
+│   │           ├── DemandeMaterielRequest.php: Validation des demandes d'achat
+│   │           ├── StoreCategoryRequest.php, UpdateCategoryRequest.php
+│   │           ├── StoreProductRequest.php   : Validation création matériel (photo, seuils, désignation)
+│   │           └── UpdateProductRequest.php  : Validation mise à jour matériel
+│   ├── Models/
+│   │   ├── ActivityLog.php       : Modèle de traçabilité des opérations
+│   │   ├── AppSetting.php        : Accès aux configurations clés-valeurs
+│   │   ├── Categorie.php         : Catégories avec relations vers les produits
+│   │   ├── DemandeMateriel.php   : Demande d'approvisionnement avec génération de lien Gmail
+│   │   ├── Emplacement.php       : Emplacement technique préservé pour compatibilité BDD
+│   │   ├── Equipement.php        : Matériel sérialisé individuel
+│   │   ├── EquipementActivite.php: Historique d'un équipement particulier
+│   │   ├── Mouvement.php         : Ligne d'historique de mouvement de stock
+│   │   ├── Produit.php           : Matériel central avec accesseurs de situations (quantite_en_stock,
+│   │   │                           quantite_en_utilisation, quantite_en_panne, total_stock, photo_url)
+│   │   ├── Stock.php             : Ligne de stock quantifiée (produit_id, emplacement_id, situation, quantite)
+│   │   └── User.php              : Utilisateur applicatif et helpers de rôles
+│   ├── Providers/
+│   │   └── AppServiceProvider.php: Initialisation automatique au démarrage (migrations de colonnes,
+│   │                               clés uniques de situation, synchronisation automatique des visuels)
+│   └── Services/
+│       ├── ActivityLoggerService.php : Service d'enregistrement standardisé des logs d'audit
+│       ├── DemandeGmailService.php   : Formatage professionnel des e-mails Gmail (headers De/À, signature)
+│       ├── ReportingService.php      : Moteur de calcul pour l'inventaire, les valorisations et les exports
+│       └── StockMovementService.php  : Moteur transactionnel gérant les transferts entre situations,
+│                                       les entrées et les sorties avec verrouillage optimiste/pessimiste
+│
+├── config/
+│   ├── app.php                   : Fuseau horaire (Europe/Paris), locale (fr), configuration générale
+│   ├── auth.php                  : Providers et guards d'authentification
+│   ├── database.php              : Connexion MySQL principale (bdd: it-manager)
+│   └── filesystems.php           : Disques de stockage ('local', 'public')
+│
+├── database/
+│   ├── migrations/               : Historique des migrations de structure de base de données
+│   └── seeders/
+│       ├── AppSettingSeeder.php      : Initialisation de l'adresse e-mail directeur par défaut
+│       ├── CategorySeeder.php        : Insertion des catégories standards
+│       ├── DatabaseSeeder.php        : Chef d'orchestre de l'initialisation complète
+│       ├── EmplacementSeeder.php     : Initialisation des emplacements techniques
+│       └── StockMovementSeeder.php   : Données de démonstration et flux initiaux
+│
+├── public/
+│   ├── css/, js/                 : Fichiers statiques compilés par Vite
+│   ├── index.php                 : Point d'entrée HTTP unique de Laravel
+│   └── storage/                  : Miroir du stockage public pour servir les images
+│
+├── resources/
+│   ├── css/
+│   │   └── app.css               : Feuille de style Tailwind CSS + correctif [x-cloak]
+│   ├── js/
+│   │   └── app.js                : Script principal Alpine.js et modules frontend
+│   └── views/
+│       ├── components/
+│       │   ├── layouts/
+│       │   │   └── dashboard.blade.php : Layout maître avec styles anti-FOUC (logo sans scintillement)
+│       │   ├── sidebar/
+│       │   │   ├── admin-sidebar.blade.php : Menu latéral Administrateur
+│       │   │   └── it-sidebar.blade.php    : Menu latéral Responsable IT (accès Stock, Matériels, Demandes...)
+│       │   └── ui/
+│       │       └── icon.blade.php          : Composant SVG Lucide Icons
+│       ├── it/
+│       │   ├── categories/index.blade.php  : Liste et gestion des catégories
+│       │   ├── dashboard/index.blade.php   : Dashboard IT avec répartition par situation
+│       │   ├── demandes/
+│       │   │   ├── create.blade.php        : Formulaire de demande avec carte De (Expéditeur) / À (Destinataire)
+│       │   │   ├── edit.blade.php          : Modification d'une demande existante
+│       │   │   ├── index.blade.php         : Liste chronologique et filtres des demandes
+│       │   │   └── show.blade.php          : Détail, prévisualisation d'e-mail et bouton d'ouverture Gmail
+│       │   ├── products/
+│       │   │   ├── create.blade.php        : Fiche de création de matériel (upload photo, stock initial)
+│       │   │   ├── edit.blade.php          : Modification avec prévisualisation dynamique d'image
+│       │   │   ├── index.blade.php         : Catalogue complet avec vignettes, filtres et badges de situation
+│       │   │   └── show.blade.php          : Fiche détaillée du matériel avec ses quantités en stock/util/panne
+│       │   ├── reports/
+│       │   │   ├── index.blade.php         : Hub central des rapports
+│       │   │   ├── inventaire.blade.php    : Inventaire exhaustif avec valorisation financière
+│       │   │   └── mouvements.blade.php    : Rapport d'audit des flux de matériels
+│       │   └── stocks/
+│       │       ├── index.blade.php         : Gestion simplifiée du stock et modal de changement de situation
+│       │       ├── entree.blade.php        : Formulaire d'entrée de matériel
+│       │       ├── sortie.blade.php        : Formulaire de sortie / mise à disposition
+│       │       └── correction.blade.php    : Ajustement d'inventaire physique
+│       └── admin/
+│           ├── activities/index.blade.php  : Vue des logs d'audit
+│           ├── dashboard/index.blade.php   : Vue générale administrateur
+│           ├── settings/index.blade.php    : Configuration de l'e-mail du directeur
+│           └── users/index.blade.php       : Gestion des comptes
+│
+├── routes/
+│   ├── web.php                   : Définition de toutes les routes de l'application
+│   │                               (inclut la route directe `/media/{path}` pour servir les photos)
+│   └── auth.php                  : Routes Breeze pour login, logout, changement de mot de passe
+│
+└── storage/
+    └── app/
+        └── public/
+            └── products/         : Répertoire physique des photos uploadées
+
+================================================================================
+6. FONCTIONNEMENT DÉTAILLÉ DE CHAQUE MODULE
+================================================================================
+
+1. MODULE CATALOGUE MATÉRIEL (PRODUITS)
+   - Permet de référencer chaque type de matériel (ex: Clavier Dell KB216, PC Portable ThinkPad T14).
+   - Informations gérées : Nom, Catégorie, Marque, Modèle, Référence interne (SKU), Prix indicatif,
+     Seuil d'alerte, Description, Spécifications techniques et Photo.
+   - Les champs 'marque' et 'modele' sont optionnels pour ne pas bloquer les petits matériels génériques.
+   - Dès la création d'un produit, une ligne de stock en situation 'en_stock' est créée avec la quantité
+     initiale renseignée.
+
+2. MODULE GESTION DU STOCK SIMPLIFIÉ
+   - Accessible sur la route `/it/stocks`.
+   - Présente pour chaque produit les 4 compteurs :
+     * En stock (Disponible)
+     * En utilisation (En cours d'usage)
+     * En panne (Hors service)
+     * Total global (Somme des trois)
+   - Permet les mouvements rapides :
+     * Entrée en stock : Ajoute de nouvelles unités achetées.
+     * Sortie de stock : Enregistre une mise au rebut ou un départ définitif.
+     * Changement de situation : Transvase d'une situation à une autre sans formulaire d'emplacement.
+
+3. MODULE DEMANDES DE MATÉRIEL VIA GMAIL
+   - Prépare une demande d'achat de matériel pré-remplie.
+   - L'écran affiche une identification claire :
+     * DE (Expéditeur) : Nom, E-mail et fonction de la personne connectée (ex: Gestionnaire de stock).
+     * À (Destinataire) : Nom et E-mail de la personne qui doit valider (ex: Directeur, responsable des achats).
+   - Lors du clic sur "Ouvrir dans Gmail", une URL standard `mail.google.com/mail/?view=cm...` s'ouvre
+     dans un nouvel onglet avec :
+     * Destinataire (To)
+     * Objet professionnel (ex: "[VAR du Lassureur] Demande d'approvisionnement : Clavier")
+     * Corps de message structuré reprenant les quantités demandées, l'état actuel des stocks, le motif et
+       la signature de l'expéditeur.
+   - L'expéditeur relit et appuie lui-même sur "Envoyer" dans Gmail.
+   - Un bouton déclaratif "Marquer comme envoyée" permet de suivre l'état de la demande dans l'application.
+
+4. MODULE RAPPORTS & EXPORTS
+   - Vue Inventaire : État instantané de tout le matériel avec valorisation financière globale.
+   - Vue Mouvements : Chronologie complète de toutes les opérations effectuées.
+   - Possibilité d'imprimer ou d'exporter les tableaux.
+
+================================================================================
+7. GESTION DES FICHIERS MULTIMÉDIA ET PHOTOS MATÉRIEL (WINDOWS FRIENDLY)
+================================================================================
+Sous Windows, la commande `php artisan storage:link` échoue fréquemment car la création
+de liens symboliques requiert des privilèges administrateur (SeCreateSymbolicLinkPrivilege).
+De plus, le serveur de développement PHP intégré (`php -S` / `artisan serve`) intercepte
+statiquement les URLs débutant par `/storage/` si un dossier `public/storage` existe,
+provoquant une erreur HTTP 404 (icône d'image cassée).
+
+Solution robuste mise en œuvre dans le projet :
+1. Distribution par route Laravel dédiée :
+   - Route `GET /media/{path}` définie dans `routes/web.php`.
+   - Cette route lit directement le fichier dans `storage/app/public/{path}` et le renvoie avec
+     l'en-tête `Content-Type` adapté (`image/jpeg`, `image/png`, `image/webp`).
+   - Le serveur web ne peut pas l'intercepter statiquement car il n'existe pas de dossier physique `public/media`.
+2. Accesseur `photo_url` dans `App\Models\Produit` :
+   - Retourne automatiquement le chemin `/media/...` dès que l'image existe physiquement.
+3. Miroir automatique (Mirroring) :
+   - À chaque upload dans `ProductController@store` ou `update`, le fichier est également copié
+     dans `public/storage/products/`.
+   - `AppServiceProvider` synchronise automatiquement les visuels existants au démarrage.
+4. Fallback visuel `onerror` :
+   - Les balises `<img>` dans Blade contiennent une sécurité JavaScript qui affiche l'icône de
+     remplacement élégante au lieu de l'icône d'image brisée si le fichier venait à manquer.
+
+================================================================================
+8. HISTORIQUE DES PRINCIPAUX CORRECTIFS APPLIQUÉS
+================================================================================
+1. Suppression complète des Emplacements :
+   - Les colonnes et sélecteurs d'emplacements ont été retirés de l'ensemble des vues IT et Admin.
+   - En base de données, la clé unique `stocks_produit_id_emplacement_id_unique` a été remplacée
+     par `stocks_produit_emplacement_situation_unique` pour permettre plusieurs situations pour un même produit.
+   - Les services (`StockMovementService`) utilisent automatiquement un emplacement technique par défaut.
+
+2. Clignotement / Flash du Logo (FOUC) :
+   - Ajout de styles stricts inline dans `<head>` et `app.css` (`[x-cloak] { display: none !important; }`,
+     dimensions explicites de l'image du logo max-height: 40px) afin que le logo apparaisse
+     immédiatement à la bonne taille sans sursaut avant le chargement d'Alpine.js.
+
+3. Redirection après "Marquer comme envoyée" :
+   - Remplacement de `return back()` par `return redirect()->route('it.demandes.show', $demande)`
+     dans `DemandeMaterielController@markSent` pour empêcher l'erreur HTTP 405 (Method Not Allowed)
+     lors d'un rafraîchissement (F5) de la page.
+
+4. Extension de colonne `statut_preparation` :
+   - Modification du type de colonne dans `demandes_materiel` en `VARCHAR(50)` pour autoriser
+     les statuts 'envoyee' et 'ouverture_gmail' sans troncature de données (Data Truncated).
+
+5. Nullabilité des champs Marque et Modèle :
+   - Colonnes `marque` et `modele` rendues NULLABLE dans la table `produits` afin de permettre
+     l'enregistrement rapide de consommables génériques sans erreur SQL.
+
+================================================================================
+FIN DU DOCUMENT info.txt - STOCK MATÉRIEL
+================================================================================

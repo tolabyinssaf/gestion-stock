@@ -94,7 +94,7 @@
                 <div>
                     <h2 class="text-xl font-bold text-content tracking-tight">Catégories de matériel</h2>
                     <p class="text-xs sm:text-sm text-content-secondary mt-1 max-w-xl">
-                        Structurez le catalogue des équipements informatiques. Les catégories permettent d'organiser les références et de classer le stock de manière cohérente.
+                        Organisez vos produits par catégorie pour faciliter la gestion du stock.
                     </p>
                 </div>
             </div>

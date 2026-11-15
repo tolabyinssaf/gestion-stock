@@ -55,9 +55,8 @@ Route::middleware(['auth', 'role:responsable_it'])->prefix('it')->name('it.')->g
     Route::resource('equipements', ITEquipementController::class);
     Route::patch('/equipements/{equipement}/toggle-status', [ITEquipementController::class, 'toggleStatus'])->name('equipements.toggle-status');
 
-    // Emplacements physiques de stockage
-    Route::resource('emplacements', ITEmplacementController::class)->except(['create', 'edit']);
-    Route::patch('/emplacements/{emplacement}/toggle-status', [ITEmplacementController::class, 'toggleStatus'])->name('emplacements.toggle-status');
+    // Redirection propre des anciens modules d'emplacements vers le stock simplifié
+    Route::get('/emplacements', fn() => redirect()->route('it.stocks.index'))->name('emplacements.index');
 
     // Gestion des Stocks & Mouvements
     Route::get('/stocks', [ITStockController::class, 'index'])->name('stocks.index');
@@ -65,7 +64,8 @@ Route::middleware(['auth', 'role:responsable_it'])->prefix('it')->name('it.')->g
     Route::post('/stocks/entree', [ITStockController::class, 'storeEntree'])->name('stocks.entree.store');
     Route::get('/stocks/sortie', [ITStockController::class, 'createSortie'])->name('stocks.sortie');
     Route::post('/stocks/sortie', [ITStockController::class, 'storeSortie'])->name('stocks.sortie.store');
-    Route::get('/stocks/transfert', [ITStockController::class, 'createTransfert'])->name('stocks.transfert');
+    Route::post('/stocks/changement-situation', [ITStockController::class, 'storeChangementSituation'])->name('stocks.situation.store');
+    Route::get('/stocks/transfert', fn() => redirect()->route('it.stocks.index'))->name('stocks.transfert');
     Route::post('/stocks/transfert', [ITStockController::class, 'storeTransfert'])->name('stocks.transfert.store');
     Route::get('/stocks/correction', [ITStockController::class, 'createCorrection'])->name('stocks.correction');
     Route::post('/stocks/correction', [ITStockController::class, 'storeCorrection'])->name('stocks.correction.store');
@@ -88,7 +88,7 @@ Route::middleware(['auth', 'role:responsable_it'])->prefix('it')->name('it.')->g
         Route::get('/stocks', fn() => redirect()->route('it.reports.inventaire'))->name('stocks');
         Route::get('/mouvements', [\App\Http\Controllers\IT\ReportController::class, 'mouvements'])->name('mouvements');
         Route::get('/demandes', fn() => redirect()->route('it.demandes.index'))->name('demandes');
-        Route::get('/emplacements', fn() => redirect()->route('it.emplacements.index'))->name('emplacements');
+        Route::get('/emplacements', fn() => redirect()->route('it.stocks.index'))->name('emplacements');
     });
 });
 
@@ -107,5 +107,26 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+
+// Distribution directe des fichiers du disque public (garantit l'affichage des photos même sans lien symbolique sous Windows)
+// Route /media/{path} — chemin dédié qui ne peut PAS être intercepté par le serveur PHP intégré
+Route::get('/media/{path}', function (string $path) {
+    $filePath = storage_path('app/public/' . $path);
+    if (!file_exists($filePath)) {
+        abort(404);
+    }
+    $mime = mime_content_type($filePath) ?: 'application/octet-stream';
+    return response()->file($filePath, ['Content-Type' => $mime]);
+})->where('path', '.*')->name('media.serve');
+
+// Ancien chemin /storage/{path} conservé pour la rétrocompatibilité
+Route::get('/storage/{path}', function (string $path) {
+    $filePath = storage_path('app/public/' . $path);
+    if (!file_exists($filePath)) {
+        abort(404);
+    }
+    $mime = mime_content_type($filePath) ?: 'application/octet-stream';
+    return response()->file($filePath, ['Content-Type' => $mime]);
+})->where('path', '.*')->name('storage.local');
 
 require __DIR__.'/auth.php';

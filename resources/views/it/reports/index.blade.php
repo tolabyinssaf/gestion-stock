@@ -10,7 +10,7 @@
                 <div>
                     <h2 class="text-xl font-bold text-content tracking-tight">Rapports & Exports</h2>
                     <p class="text-xs sm:text-sm text-content-secondary mt-1 max-w-2xl">
-                        Consultez, exportez et transmettez par Gmail les rapports de gestion du stock et des mouvements de matériel.
+                        Consultez, exportez et partagez vos rapports.
                     </p>
                 </div>
             </div>

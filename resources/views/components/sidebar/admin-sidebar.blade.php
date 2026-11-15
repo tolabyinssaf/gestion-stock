@@ -1,7 +1,7 @@
 @props([])
 
 <aside
-    class="fixed inset-y-0 left-0 z-40 bg-white border-r border-border flex flex-col transition-all duration-300 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:flex-shrink-0"
+    class="fixed inset-y-0 left-0 z-40 bg-white border-r border-border flex flex-col transition-all duration-300 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:flex-shrink-0 w-64"
     :class="{
         'w-64': !sidebarCollapsed,
         'w-20': sidebarCollapsed,
@@ -10,24 +10,24 @@
     }"
 >
     <!-- Brand Header -->
-    <div class="h-16 flex items-center px-4 border-b border-border/80 flex-shrink-0" :class="sidebarCollapsed ? 'justify-center' : 'justify-between'">
-        <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-3 overflow-hidden">
-            <div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center flex-shrink-0 text-white shadow-xs">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 7h.01"/><path d="M17 7h.01"/><path d="M7 17h.01"/><path d="M17 17h.01"/><path d="M12 12h.01"/>
-                </svg>
-            </div>
-            <div class="flex flex-col min-w-0 transition-opacity duration-200" x-show="!sidebarCollapsed">
-                <span class="text-sm font-bold text-content tracking-tight truncate">Stock Matériel</span>
-                <span class="text-[11px] font-semibold text-primary uppercase tracking-wider">Administration</span>
-            </div>
+    <div class="h-16 relative flex items-center justify-center px-4 border-b border-border/80 flex-shrink-0 overflow-hidden">
+        <a href="{{ route('admin.dashboard') }}" class="flex items-center justify-center w-full h-full overflow-hidden">
+            <img
+                src="/images/logo.png"
+                alt="VAR du Lassureur"
+                width="160"
+                height="40"
+                class="sidebar-brand-logo object-contain transition-all duration-150 mx-auto"
+                :class="sidebarCollapsed ? '!h-7 !max-w-[48px]' : 'h-10 max-w-[160px]'"
+                style="max-height: 40px; max-width: 160px;"
+            />
         </a>
 
         <!-- Close button on mobile -->
         <button
             type="button"
             @click="mobileSidebarOpen = false"
-            class="lg:hidden p-1.5 rounded-lg text-content-secondary hover:text-content hover:bg-surface"
+            class="lg:hidden absolute right-3 p-1.5 rounded-lg text-content-secondary hover:text-content hover:bg-surface"
         >
             <x-ui.icon name="x" class="w-5 h-5" />
         </button>

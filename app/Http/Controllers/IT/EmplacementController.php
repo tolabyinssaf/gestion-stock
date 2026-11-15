@@ -78,7 +78,7 @@ class EmplacementController extends Controller
 
         return redirect()
             ->route('it.emplacements.index')
-            ->with('success', "L'emplacement « {$emplacement->nom} » ({$emplacement->code}) a été créé avec succès.");
+            ->with('success', "Emplacement ajouté avec succès.");
     }
 
     /**
@@ -110,7 +110,7 @@ class EmplacementController extends Controller
 
         return redirect()
             ->route('it.emplacements.index')
-            ->with('success', "L'emplacement « {$emplacement->nom} » a été mis à jour.");
+            ->with('success', "Emplacement mis à jour.");
     }
 
     /**

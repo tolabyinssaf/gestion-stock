@@ -256,8 +256,41 @@
                     </div>
                 </div>
 
+                <!-- Identification de l'échange : De ... À ... -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-surface/60 rounded-xl border border-border text-xs">
+                    <div class="space-y-1">
+                        <span class="text-[10px] font-extrabold text-primary uppercase tracking-wider block">
+                            📤 Expéditeur (De / Qui envoie)
+                        </span>
+                        <div class="font-bold text-content text-sm">
+                            {{ $demande->user->name ?? 'Gestionnaire de stock' }}
+                        </div>
+                        <div class="font-mono text-content-secondary text-[11px]">
+                            {{ $demande->user->email ?? 'N/A' }}
+                        </div>
+                        <span class="inline-block text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded">
+                            Gestionnaire de stock — Service Informatique
+                        </span>
+                    </div>
+
+                    <div class="space-y-1 border-t sm:border-t-0 sm:border-l border-border pt-3 sm:pt-0 sm:pl-4">
+                        <span class="text-[10px] font-extrabold text-emerald-700 uppercase tracking-wider block">
+                            📥 Destinataire (À / Qui reçoit)
+                        </span>
+                        <div class="font-bold text-content text-sm">
+                            {{ $demande->destinataire_nom ?? 'Direction Générale' }}
+                        </div>
+                        <div class="font-mono text-content-secondary text-[11px]">
+                            {{ $demande->email_destinataire }}
+                        </div>
+                        <span class="inline-block text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                            Destinataire officiel de la demande
+                        </span>
+                    </div>
+                </div>
+
                 <!-- Justification -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-border">
+                <div class="grid grid-cols-1 gap-6 pt-4 border-t border-border">
                     <div>
                         <span class="text-[11px] font-bold text-content-secondary uppercase tracking-wider block mb-1">Motif de la demande</span>
                         <div class="text-xs text-content bg-surface p-3.5 rounded-xl border border-border leading-relaxed font-medium">
@@ -265,16 +298,8 @@
                         </div>
                     </div>
 
-                    <div>
-                        <span class="text-[11px] font-bold text-content-secondary uppercase tracking-wider block mb-1">Destinataire configuré</span>
-                        <div class="text-xs text-content bg-surface p-3.5 rounded-xl border border-border">
-                            <div class="font-semibold">{{ $demande->destinataire_nom ?? 'Direction Générale' }}</div>
-                            <div class="font-mono text-content-secondary text-[11px] mt-0.5">{{ $demande->email_destinataire }}</div>
-                        </div>
-                    </div>
-
                     @if($demande->commentaire)
-                        <div class="md:col-span-2">
+                        <div>
                             <span class="text-[11px] font-bold text-content-secondary uppercase tracking-wider block mb-1">Observations complémentaires</span>
                             <div class="text-xs text-content bg-surface p-3.5 rounded-xl border border-border leading-relaxed">
                                 {{ $demande->commentaire }}
@@ -304,6 +329,20 @@
             </div>
 
             <div class="p-6 sm:p-8 space-y-4">
+                <!-- En-tête De ... À ... visuel -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-surface/80 rounded-xl border border-border text-xs">
+                    <div>
+                        <span class="text-[10px] font-bold text-content-secondary uppercase block">Expéditeur (De) :</span>
+                        <span class="font-semibold text-content">{{ $demande->user->name ?? 'Gestionnaire de stock' }}</span>
+                        <span class="text-content-secondary font-mono text-[11px]">&lt;{{ $demande->user->email ?? 'N/A' }}&gt;</span>
+                    </div>
+                    <div>
+                        <span class="text-[10px] font-bold text-content-secondary uppercase block">Destinataire (À) :</span>
+                        <span class="font-semibold text-content">{{ $demande->destinataire_nom ?? 'Direction Générale' }}</span>
+                        <span class="text-content-secondary font-mono text-[11px]">&lt;{{ $demande->email_destinataire }}&gt;</span>
+                    </div>
+                </div>
+
                 <div>
                     <span class="block text-[11px] font-bold text-content-secondary uppercase tracking-wider mb-1">Objet</span>
                     <div class="p-3 bg-surface rounded-xl border border-border text-xs font-semibold text-content">

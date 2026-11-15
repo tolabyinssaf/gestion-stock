@@ -43,9 +43,9 @@
                     <x-ui.icon name="chevron-left" class="w-4 h-4" />
                     Retour à la fiche produit
                 </a>
-                <h1 class="text-2xl font-bold text-content tracking-tight">Modifier la référence</h1>
+                <h1 class="text-2xl font-bold text-content tracking-tight">Modifier le matériel</h1>
                 <p class="text-xs sm:text-sm text-content-secondary mt-1">
-                    Mise à jour des informations du produit <strong class="text-content font-semibold">« {{ $product->nom }} »</strong> (SKU: {{ $product->reference }})
+                    Mise à jour des informations du matériel <strong class="text-content font-semibold">« {{ $product->nom }} »</strong> (Réf : {{ $product->reference }})
                 </p>
             </div>
 
@@ -77,16 +77,16 @@
                         <x-ui.icon name="package" class="w-5 h-5" />
                     </div>
                     <div>
-                        <h2 class="text-base font-bold text-content">1. Identification principale</h2>
-                        <p class="text-xs text-content-secondary">Informations fondamentales d'identification du produit</p>
+                        <h2 class="text-base font-bold text-content">1. Identification du matériel</h2>
+                        <p class="text-xs text-content-secondary">Informations générales du matériel</p>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <!-- Nom du produit -->
+                    <!-- Nom du matériel -->
                     <div class="md:col-span-2">
                         <label for="nom" class="block text-xs font-bold text-content uppercase tracking-wider mb-2">
-                            Désignation du produit <span class="text-red-500">*</span>
+                            Nom du matériel <span class="text-red-500">*</span>
                         </label>
                         <input
                             type="text"

@@ -20,7 +20,7 @@ class EntreeStockRequest extends FormRequest
                 'exists:produits,id',
             ],
             'emplacement_id' => [
-                'required',
+                'nullable',
                 'exists:emplacements,id',
             ],
             'quantite' => [
@@ -48,7 +48,7 @@ class EntreeStockRequest extends FormRequest
                 'max:2000',
             ],
             'date_mouvement' => [
-                'required',
+                'nullable',
                 'date',
                 'before_or_equal:today',
             ],
@@ -59,7 +59,6 @@ class EntreeStockRequest extends FormRequest
     {
         return [
             'produit_id.required' => 'Le produit est obligatoire.',
-            'emplacement_id.required' => 'L\'emplacement de réception est obligatoire.',
             'quantite.min' => 'La quantité doit être d\'au moins 1.',
             'motif.required' => 'Le motif de l\'entrée est obligatoire.',
             'date_mouvement.before_or_equal' => 'La date ne peut pas être future.',

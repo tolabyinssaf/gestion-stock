@@ -130,11 +130,19 @@ class DemandeMaterielController extends Controller
 
         $produit = Produit::with(['category', 'stocks'])->findOrFail($validated['produit_id']);
 
-        if (!$this->gmailService->isConfigured() && ($validated['action_type'] ?? '') === 'prepare_gmail') {
-            return back()->withInput()->with('error', 'L\'adresse e-mail du directeur n\'est pas configurée. Demandez à l\'administrateur de la définir dans les paramètres.');
-        }
-
         $directeurConfig = $this->gmailService->getDirecteurConfig();
+
+        $destinataireNom = !empty($validated['destinataire_nom'])
+            ? $validated['destinataire_nom']
+            : ($directeurConfig['nom'] ?? 'Direction Générale');
+
+        $emailDestinataire = !empty($validated['email_destinataire'])
+            ? $validated['email_destinataire']
+            : ($directeurConfig['email'] ?? '');
+
+        if (empty($emailDestinataire) && ($validated['action_type'] ?? '') === 'prepare_gmail') {
+            return back()->withInput()->with('error', 'Veuillez saisir l\'adresse e-mail du destinataire ou configurer l\'adresse de la Direction dans les paramètres.');
+        }
 
         $objet = $this->gmailService->genererObjet($produit);
         $corps = $this->gmailService->genererCorps(
@@ -143,7 +151,9 @@ class DemandeMaterielController extends Controller
             $validated['priorite'],
             $validated['motif'],
             $validated['commentaire'] ?? null,
-            $user
+            $user,
+            $destinataireNom,
+            $emailDestinataire
         );
 
         $statutPreparation = ($validated['action_type'] ?? 'save_draft') === 'prepare_gmail'
@@ -163,8 +173,8 @@ class DemandeMaterielController extends Controller
             'produit_reference' => $produit->reference,
             'produit_categorie' => $produit->category->nom ?? 'Non classé',
             'stock_disponible_snapshot' => $produit->total_stock,
-            'destinataire_nom' => $directeurConfig['nom'],
-            'email_destinataire' => $directeurConfig['email'] ?? '',
+            'destinataire_nom' => $destinataireNom,
+            'email_destinataire' => $emailDestinataire,
             'objet_email' => $objet,
             'corps_email' => $corps,
         ]);
@@ -182,11 +192,11 @@ class DemandeMaterielController extends Controller
 
         if ($statutPreparation === DemandeMateriel::STATUT_PRETE) {
             return redirect()->route('it.demandes.show', $demande)
-                ->with('success', 'Demande préparée avec succès. Cliquez sur "Ouvrir dans Gmail" pour envoyer le message.');
+                ->with('success', 'Demande enregistrée. Cliquez sur "Ouvrir dans Gmail" pour envoyer le message.');
         }
 
         return redirect()->route('it.demandes.show', $demande)
-            ->with('success', 'Brouillon de demande enregistré avec succès.');
+            ->with('success', 'Demande enregistrée.');
     }
 
     /**
@@ -245,6 +255,14 @@ class DemandeMaterielController extends Controller
 
         $directeurConfig = $this->gmailService->getDirecteurConfig();
 
+        $destinataireNom = !empty($validated['destinataire_nom'])
+            ? $validated['destinataire_nom']
+            : ($demande->destinataire_nom ?: ($directeurConfig['nom'] ?? 'Direction Générale'));
+
+        $emailDestinataire = !empty($validated['email_destinataire'])
+            ? $validated['email_destinataire']
+            : ($demande->email_destinataire ?: ($directeurConfig['email'] ?? ''));
+
         $objet = $this->gmailService->genererObjet($produit);
         $corps = $this->gmailService->genererCorps(
             $produit,
@@ -252,7 +270,9 @@ class DemandeMaterielController extends Controller
             $validated['priorite'],
             $validated['motif'],
             $validated['commentaire'] ?? null,
-            $user
+            $user,
+            $destinataireNom,
+            $emailDestinataire
         );
 
         $statutPreparation = ($validated['action_type'] ?? 'update') === 'prepare_gmail'
@@ -270,14 +290,14 @@ class DemandeMaterielController extends Controller
             'produit_reference' => $produit->reference,
             'produit_categorie' => $produit->category->nom ?? 'Non classé',
             'stock_disponible_snapshot' => $produit->total_stock,
-            'destinataire_nom' => $directeurConfig['nom'],
-            'email_destinataire' => $directeurConfig['email'] ?? '',
+            'destinataire_nom' => $destinataireNom,
+            'email_destinataire' => $emailDestinataire,
             'objet_email' => $objet,
             'corps_email' => $corps,
         ]);
 
         return redirect()->route('it.demandes.show', $demande)
-            ->with('success', 'Demande mise à jour avec succès.');
+            ->with('success', 'Demande enregistrée.');
     }
 
     /**
@@ -385,6 +405,6 @@ class DemandeMaterielController extends Controller
             entityName: $demande->reference
         );
 
-        return back()->with('success', 'Demande marquée comme envoyée (suivi déclaratif).');
+        return redirect()->route('it.demandes.show', $demande)->with('success', 'Demande marquée comme envoyée (suivi déclaratif).');
     }
 }

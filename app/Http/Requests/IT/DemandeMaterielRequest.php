@@ -33,6 +33,8 @@ class DemandeMaterielRequest extends FormRequest
             'priorite' => ['required', Rule::in(DemandeMateriel::PRIORITES)],
             'motif' => ['required', 'string', 'min:3', 'max:255'],
             'commentaire' => ['nullable', 'string', 'max:1000'],
+            'destinataire_nom' => ['nullable', 'string', 'max:150'],
+            'email_destinataire' => ['nullable', 'email', 'max:150'],
             'action_type' => ['nullable', Rule::in(['save_draft', 'prepare_gmail', 'update'])],
         ];
     }

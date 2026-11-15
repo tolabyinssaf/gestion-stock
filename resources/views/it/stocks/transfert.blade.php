@@ -8,9 +8,9 @@
                     <x-ui.icon name="arrow-right-left" class="w-6 h-6" />
                 </div>
                 <div>
-                    <h2 class="text-xl font-bold text-content tracking-tight">Transfert inter-emplacements</h2>
+                    <h2 class="text-xl font-bold text-content tracking-tight">Transfert d'emplacement</h2>
                     <p class="text-xs sm:text-sm text-content-secondary mt-1">
-                        Déplacer des matériels ou équipements d'un emplacement source vers un emplacement de destination sans altérer le stock global de l'entreprise.
+                        Déplacez du matériel d'un emplacement à un autre.
                     </p>
                 </div>
             </div>

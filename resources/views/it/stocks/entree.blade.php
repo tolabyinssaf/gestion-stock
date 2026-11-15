@@ -10,7 +10,7 @@
                 <div>
                     <h2 class="text-xl font-bold text-content tracking-tight">Enregistrer une entrée de stock</h2>
                     <p class="text-xs sm:text-sm text-content-secondary mt-1">
-                        Approvisionnement de consommables par quantité ou intégration d'un équipement individuel sérialisé.
+                        Ajoutez des quantités de matériel en stock ou réceptionnez un équipement.
                     </p>
                 </div>
             </div>
@@ -70,9 +70,9 @@
                 <div class="border-b border-border pb-5 mb-5">
                     <h3 class="text-sm font-bold text-content uppercase tracking-wider mb-1 flex items-center gap-2">
                         <x-ui.icon name="box" class="w-4 h-4 text-emerald-600" />
-                        Article & Destination
+                        Article & Réception
                     </h3>
-                    <p class="text-xs text-content-secondary">Sélectionnez le matériel réceptionné et l'emplacement de stockage.</p>
+                    <p class="text-xs text-content-secondary">Sélectionnez le matériel réceptionné à ajouter au stock disponible.</p>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -135,24 +135,16 @@
                         >
                     </div>
 
-                    <!-- Emplacement Destination -->
-                    <div :class="isIndividuel ? 'md:col-span-2' : ''">
-                        <label for="emplacement_destination_id" class="block text-xs font-bold text-content uppercase tracking-wider mb-2">
-                            Emplacement de stockage <span class="text-rose-500">*</span>
+                    <!-- Situation Destination -->
+                    <div>
+                        <label class="block text-xs font-bold text-content uppercase tracking-wider mb-2">
+                            Situation de destination
                         </label>
-                        <select
-                            id="emplacement_destination_id"
-                            name="emplacement_destination_id"
-                            required
-                            class="w-full px-3.5 py-2.5 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                        >
-                            <option value="">Sélectionner l'emplacement...</option>
-                            @foreach ($emplacements as $emp)
-                                <option value="{{ $emp->id }}" {{ old('emplacement_destination_id') == $emp->id ? 'selected' : '' }}>
-                                    {{ $emp->nom }} {{ $emp->site ? '('.$emp->site.')' : '' }}
-                                </option>
-                            @endforeach
-                        </select>
+                        <input type="hidden" name="situation" value="en_stock">
+                        <div class="px-3.5 py-2.5 bg-surface/70 border border-border rounded-xl text-xs text-content flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            <span class="font-bold text-emerald-800">En stock (disponible en réserve)</span>
+                        </div>
                     </div>
                 </div>
 

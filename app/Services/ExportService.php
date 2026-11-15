@@ -48,7 +48,7 @@ class ExportService
 
             // Metadata / Title block
             if (!empty($metadata['title'])) {
-                fputcsv($handle, ['IT MANAGER PRO — ' . $metadata['title']], ';');
+                fputcsv($handle, ['STOCK INFORMATIQUE — ' . $metadata['title']], ';');
                 fputcsv($handle, ['Date de génération : ' . now()->format('d/m/Y à H:i:s')], ';');
                 if (!empty($metadata['filters'])) {
                     fputcsv($handle, ['Filtres appliqués : ' . $metadata['filters']], ';');

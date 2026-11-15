@@ -29,7 +29,7 @@
                 <div>
                     <h2 class="text-xl font-bold text-content tracking-tight">Demandes de matériel</h2>
                     <p class="text-xs sm:text-sm text-content-secondary mt-1 max-w-xl">
-                        Préparez et suivez vos demandes de réapprovisionnement.
+                        Préparez vos demandes de matériel.
                     </p>
                 </div>
             </div>

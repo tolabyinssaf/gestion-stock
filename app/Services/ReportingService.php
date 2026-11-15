@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Schema;
 class ReportingService
 {
     /**
-     * Get real KPIs for IT Dashboard (Focus: Stock Management).
+     * Get real KPIs for IT Dashboard (Focus: Stock Management & Situations).
      */
     public function getItDashboardStats(): array
     {
@@ -23,44 +23,67 @@ class ReportingService
         $hasStocks = Schema::hasTable('stocks');
         $hasMouvements = Schema::hasTable('mouvements');
 
-        // Récupérer le destinataire Gmail configuré pour les demandes
         $directeurEmail = \App\Models\AppSetting::get('directeur_email', '');
+        $directeurNom = \App\Models\AppSetting::get('directeur_nom', 'Direction Générale');
+        $currentUser = auth()->user();
+        $senderNom = $currentUser?->name ?? 'Gestionnaire de stock';
+        $senderEmail = $currentUser?->email ?? '';
 
-        // 1. Produits actifs au catalogue
+        // 1. Produits enregistrés
         $totalProduits = $hasProduits ? Produit::where('statut', Produit::STATUT_ACTIF)->count() : 0;
 
-        // 2. Calcul des quantités réelles par produit actif
-        $totalUnitesStock = 0;
+        // 2. Calcul des quantités par situation
+        $totalEnStock = 0;
+        $totalEnUtilisation = 0;
+        $totalEnPanne = 0;
         $stockFaibleCount = 0;
         $produitsEpuisesCount = 0;
         $alertesStock = [];
 
         if ($hasProduits) {
-            $produits = Produit::with(['categorie', 'stocks'])
+            $produits = Produit::with(['categorie', 'stocks.emplacement'])
                 ->where('statut', Produit::STATUT_ACTIF)
                 ->orderBy('nom', 'asc')
                 ->get();
 
             foreach ($produits as $p) {
-                // Somme des quantités disponibles dans tous les emplacements
-                $qte = (int) $p->stocks->sum('quantite');
-                $totalUnitesStock += $qte;
+                $qteStock = $p->quantite_en_stock;
+                $qteUtil = $p->quantite_en_utilisation;
+                $qtePanne = $p->quantite_en_panne;
 
-                if ($qte === 0) {
+                $totalEnStock += $qteStock;
+                $totalEnUtilisation += $qteUtil;
+                $totalEnPanne += $qtePanne;
+
+                $seuil = ($p->seuil_minimum !== null && $p->seuil_minimum > 0) ? (int) $p->seuil_minimum : 1;
+
+                if ($qteStock === 0) {
                     $produitsEpuisesCount++;
 
-                    // Construction de l'URL Gmail préremplie
                     $sujet = 'Demande de réapprovisionnement — ' . $p->nom;
-                    $corps = "Bonjour,\r\n\r\n"
+                    $corps = "==================================================\r\n"
+                        . "DE (Expéditeur)   : {$senderNom} <{$senderEmail}> (Gestionnaire de stock)\r\n"
+                        . "À  (Destinataire) : {$directeurNom} <{$directeurEmail}>\r\n"
+                        . "DATE              : " . now()->format('d/m/Y à H:i') . "\r\n"
+                        . "OBJET             : {$sujet}\r\n"
+                        . "==================================================\r\n\r\n"
+                        . "Bonjour {$directeurNom},\r\n\r\n"
                         . "Je vous sollicite pour une demande urgente de réapprovisionnement de matériel informatique :\r\n\r\n"
+                        . "■ MATÉRIEL CONCERNÉ :\r\n"
                         . "- Produit : {$p->nom}\r\n"
                         . "- Référence : {$p->reference}\r\n"
                         . "- Catégorie : " . ($p->categorie->nom ?? 'Non classé') . "\r\n"
-                        . "- Quantité restante en stock : 0 (RUPTURE)\r\n"
+                        . "- Quantité en stock (réserve) : 0 (ÉPUISÉ)\r\n"
+                        . "- En utilisation : {$qteUtil}\r\n"
+                        . "- En panne : {$qtePanne}\r\n"
                         . "- Quantité souhaitée : 5\r\n\r\n"
                         . "Merci de bien vouloir valider cette commande.\r\n\r\n"
-                        . "Cordialement,\r\n"
-                        . (auth()->user()?->name ?? 'Responsable IT');
+                        . "Cordialement,\r\n\r\n"
+                        . "--------------------------------------------------\r\n"
+                        . "{$senderNom}\r\n"
+                        . "Gestionnaire de stock — Service Informatique\r\n"
+                        . "VAR du Lassureur\r\n"
+                        . "E-mail : {$senderEmail}";
 
                     $gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1'
                         . '&to=' . rawurlencode($directeurEmail)
@@ -70,24 +93,38 @@ class ReportingService
                     $alertesStock[] = [
                         'produit' => $p,
                         'quantite' => 0,
+                        'seuil' => $seuil,
                         'type' => 'rupture', // rouge
                         'gmail_url' => $gmailUrl,
                     ];
-                } elseif ($qte === 1) {
+                } elseif ($qteStock <= $seuil) {
                     $stockFaibleCount++;
 
-                    // Construction de l'URL Gmail préremplie
-                    $sujet = 'Demande de matériel informatique — ' . $p->nom;
-                    $corps = "Bonjour,\r\n\r\n"
+                    $sujet = 'Alerte stock faible — ' . $p->nom;
+                    $corps = "==================================================\r\n"
+                        . "DE (Expéditeur)   : {$senderNom} <{$senderEmail}> (Gestionnaire de stock)\r\n"
+                        . "À  (Destinataire) : {$directeurNom} <{$directeurEmail}>\r\n"
+                        . "DATE              : " . now()->format('d/m/Y à H:i') . "\r\n"
+                        . "OBJET             : {$sujet}\r\n"
+                        . "==================================================\r\n\r\n"
+                        . "Bonjour {$directeurNom},\r\n\r\n"
                         . "Je vous soumets une demande de réapprovisionnement pour le matériel suivant en stock faible :\r\n\r\n"
+                        . "■ MATÉRIEL CONCERNÉ :\r\n"
                         . "- Produit : {$p->nom}\r\n"
                         . "- Référence : {$p->reference}\r\n"
                         . "- Catégorie : " . ($p->categorie->nom ?? 'Non classé') . "\r\n"
-                        . "- Quantité restante en stock : 1 unité restante\r\n"
+                        . "- Quantité en stock (réserve) : {$qteStock} unité(s) restante(s)\r\n"
+                        . "- En utilisation : {$qteUtil}\r\n"
+                        . "- En panne : {$qtePanne}\r\n"
+                        . "- Seuil minimum d'alerte : {$seuil}\r\n"
                         . "- Quantité souhaitée : 5\r\n\r\n"
                         . "Merci de bien vouloir étudier cette demande.\r\n\r\n"
-                        . "Cordialement,\r\n"
-                        . (auth()->user()?->name ?? 'Responsable IT');
+                        . "Cordialement,\r\n\r\n"
+                        . "--------------------------------------------------\r\n"
+                        . "{$senderNom}\r\n"
+                        . "Gestionnaire de stock — Service Informatique\r\n"
+                        . "VAR du Lassureur\r\n"
+                        . "E-mail : {$senderEmail}";
 
                     $gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1'
                         . '&to=' . rawurlencode($directeurEmail)
@@ -96,7 +133,8 @@ class ReportingService
 
                     $alertesStock[] = [
                         'produit' => $p,
-                        'quantite' => 1,
+                        'quantite' => $qteStock,
+                        'seuil' => $seuil,
                         'type' => 'faible', // orange
                         'gmail_url' => $gmailUrl,
                     ];
@@ -104,17 +142,22 @@ class ReportingService
             }
         }
 
+        $totalUnitesStock = $totalEnStock + $totalEnUtilisation + $totalEnPanne;
+
         // 3. Les 5 derniers mouvements
         $recentMovements = [];
         if ($hasMouvements) {
             $recentMovements = Mouvement::with(['produit', 'user', 'emplacementSource', 'emplacementDestination'])
-                ->latest('date_mouvement')
+                ->latest('created_at')
                 ->take(5)
                 ->get();
         }
 
         return [
             'totalProduits' => $totalProduits,
+            'totalEnStock' => $totalEnStock,
+            'totalEnUtilisation' => $totalEnUtilisation,
+            'totalEnPanne' => $totalEnPanne,
             'totalUnitesStock' => $totalUnitesStock,
             'stockFaibleCount' => $stockFaibleCount,
             'produitsEpuisesCount' => $produitsEpuisesCount,
@@ -141,20 +184,18 @@ class ReportingService
         $adminCount = $hasUsers ? User::where('role', User::ROLE_ADMIN)->count() : 0;
         $itCount = $hasUsers ? User::where('role', User::ROLE_RESPONSABLE_IT)->count() : 0;
 
-        // Supervision IT
-        $totalEquipements = $hasEquipements ? Equipement::count() : 0;
+        // Supervision Stock
         $totalProduits = $hasProduits ? Produit::where('statut', Produit::STATUT_ACTIF)->count() : 0;
+        $totalEquipements = Schema::hasTable('stocks') ? (int) Stock::sum('quantite') : ($hasEquipements ? Equipement::count() : 0);
 
-        // Ruptures de stock
         $ruptureCount = 0;
         if ($hasProduits && Schema::hasTable('stocks')) {
             $produits = Produit::with('stocks')
-                ->where('type_suivi', Produit::TYPE_QUANTITE)
                 ->where('statut', Produit::STATUT_ACTIF)
                 ->get();
 
             foreach ($produits as $p) {
-                if ($p->total_stock === 0) {
+                if ($p->quantite_en_stock === 0) {
                     $ruptureCount++;
                 }
             }
@@ -171,8 +212,8 @@ class ReportingService
             foreach ($recentMovements as $m) {
                 $recentActivities[] = [
                     'type' => 'mouvement',
-                    'titre' => 'Mouvement de stock (' . ucfirst($m->type) . ')',
-                    'description' => ($m->produit->designation ?? 'Article') . ' — Qté: ' . $m->quantite . ' par ' . ($m->user->name ?? 'Système'),
+                    'titre' => 'Mouvement de stock (' . ($m->type_label ?? ucfirst($m->type)) . ')',
+                    'description' => ($m->produit->nom ?? 'Matériel') . ' — Qté: ' . $m->quantite . ' par ' . ($m->user->name ?? 'Système'),
                     'date' => $m->created_at,
                     'badge' => $m->type,
                 ];
@@ -192,7 +233,6 @@ class ReportingService
             }
         }
 
-        // Trier par date descendante
         usort($recentActivities, fn($a, $b) => $b['date'] <=> $a['date']);
         $recentActivities = array_slice($recentActivities, 0, 8);
 
@@ -202,8 +242,8 @@ class ReportingService
             'inactiveUsers' => $inactiveUsers,
             'adminCount' => $adminCount,
             'itCount' => $itCount,
-            'totalEquipements' => $totalEquipements,
             'totalProduits' => $totalProduits,
+            'totalEquipements' => $totalEquipements,
             'ruptureCount' => $ruptureCount,
             'recentActivities' => $recentActivities,
         ];

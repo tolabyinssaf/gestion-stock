@@ -167,11 +167,11 @@
                 subtext="Accès révoqué"
             />
             <x-ui.stat-card
-                title="Responsables IT"
+                title="Gestionnaires de stock"
                 :value="$itUsersCount"
                 icon="laptop"
                 color="accent"
-                subtext="Gestionnaires de parc"
+                subtext="Gestionnaires de stock"
             />
         </div>
 
@@ -200,7 +200,7 @@
                     >
                         <option value="">Tous les rôles</option>
                         <option value="{{ \App\Models\User::ROLE_ADMIN }}" {{ $role === \App\Models\User::ROLE_ADMIN ? 'selected' : '' }}>Administrateur</option>
-                        <option value="{{ \App\Models\User::ROLE_RESPONSABLE_IT }}" {{ $role === \App\Models\User::ROLE_RESPONSABLE_IT ? 'selected' : '' }}>Responsable IT</option>
+                        <option value="{{ \App\Models\User::ROLE_RESPONSABLE_IT }}" {{ $role === \App\Models\User::ROLE_RESPONSABLE_IT ? 'selected' : '' }}>Gestionnaire de stock</option>
                     </select>
                 </div>
 
@@ -492,7 +492,7 @@
                                     :class="formData.role === '{{ \App\Models\User::ROLE_RESPONSABLE_IT }}' ? 'border-accent bg-accent/5 text-accent' : 'border-border hover:bg-surface text-content'"
                                 >
                                     <div class="flex items-center justify-between mb-1">
-                                        <span class="font-semibold text-xs">Responsable IT</span>
+                                        <span class="font-semibold text-xs">Gestionnaire de stock</span>
                                         <input
                                             type="radio"
                                             name="role"

@@ -69,9 +69,9 @@
                     <x-ui.icon name="map-pin" class="w-6 h-6" />
                 </div>
                 <div>
-                    <h2 class="text-xl font-bold text-content tracking-tight">Emplacements de stockage physique</h2>
+                    <h2 class="text-xl font-bold text-content tracking-tight">Emplacements de stockage</h2>
                     <p class="text-xs sm:text-sm text-content-secondary mt-1 max-w-xl">
-                        Gestion des magasins, armoires, réserves IT et bureaux pour cartographier où se trouve chaque équipement ou pièce détachée.
+                        Gérez les lieux de stockage où est entreposé votre matériel.
                     </p>
                 </div>
             </div>

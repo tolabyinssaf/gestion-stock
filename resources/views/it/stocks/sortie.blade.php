@@ -10,7 +10,7 @@
                 <div>
                     <h2 class="text-xl font-bold text-content tracking-tight">Enregistrer une sortie de stock</h2>
                     <p class="text-xs sm:text-sm text-content-secondary mt-1">
-                        Consigner la distribution d'articles consommables ou l'attribution/déclassement d'équipements avec contrôle strict des disponibilités.
+                        Enregistrez une sortie de matériel du stock.
                     </p>
                 </div>
             </div>
@@ -42,7 +42,7 @@
             class="bg-white rounded-2xl border border-border shadow-xs p-6 sm:p-8"
             x-data="{
                 produitId: '{{ old('produit_id', request('produit_id', '')) }}',
-                emplacementSourceId: '{{ old('emplacement_source_id', '') }}',
+                situationSource: '{{ old('situation', 'en_stock') }}',
                 isIndividuel: false,
                 productsMap: {
                     @foreach($produits as $p)
@@ -50,16 +50,10 @@
                             type: '{{ $p->type_suivi }}',
                             ref: '{{ $p->reference }}',
                             nom: '{{ addslashes($p->designation) }}',
-                            totalStock: {{ $p->total_stock }}
-                        },
-                    @endforeach
-                },
-                stockLines: {
-                    @foreach($produits as $p)
-                        '{{ $p->id }}': {
-                            @foreach($p->stocks as $st)
-                                '{{ $st->emplacement_id }}': {{ $st->quantite }},
-                            @endforeach
+                            totalStock: {{ $p->total_stock }},
+                            en_stock: {{ $p->quantite_en_stock }},
+                            en_utilisation: {{ $p->quantite_en_utilisation }},
+                            en_panne: {{ $p->quantite_en_panne }}
                         },
                     @endforeach
                 },
@@ -74,11 +68,8 @@
                     }
                 },
                 getAvailableStock() {
-                    if (!this.produitId || !this.emplacementSourceId) return null;
-                    if (this.stockLines[this.produitId] && this.stockLines[this.produitId][this.emplacementSourceId] !== undefined) {
-                        return this.stockLines[this.produitId][this.emplacementSourceId];
-                    }
-                    return 0;
+                    if (!this.produitId || !this.productsMap[this.produitId]) return null;
+                    return this.productsMap[this.produitId][this.situationSource] ?? 0;
                 }
             }"
         >
@@ -88,9 +79,9 @@
                 <div class="border-b border-border pb-5 mb-5">
                     <h3 class="text-sm font-bold text-content uppercase tracking-wider mb-1 flex items-center gap-2">
                         <x-ui.icon name="box" class="w-4 h-4 text-primary" />
-                        Article & Origine du prélèvement
+                        Article & Situation d'origine
                     </h3>
-                    <p class="text-xs text-content-secondary">Sélectionnez le matériel à sortir et l'emplacement de prélèvement.</p>
+                    <p class="text-xs text-content-secondary">Sélectionnez le matériel à sortir et la situation source.</p>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -110,7 +101,7 @@
                             <option value="">Sélectionner un produit...</option>
                             @foreach ($produits as $produit)
                                 <option value="{{ $produit->id }}">
-                                    [{{ $produit->reference }}] {{ $produit->designation }} &mdash; (Suivi: {{ $produit->type_suivi_label }})
+                                    [{{ $produit->reference }}] {{ $produit->designation }} &mdash; (En stock: {{ $produit->quantite_en_stock }}, En util: {{ $produit->quantite_en_utilisation }}, En panne: {{ $produit->quantite_en_panne }})
                                 </option>
                             @endforeach
                         </select>
@@ -129,7 +120,7 @@
                             <option value="">Sélectionner l'unité disponible...</option>
                             @foreach ($equipementsDisponibles as $eq)
                                 <option value="{{ $eq->id }}" {{ old('equipement_id') == $eq->id ? 'selected' : '' }}>
-                                    N° Série: {{ $eq->numero_serie }} {{ $eq->code_inventaire ? '('.$eq->code_inventaire.')' : '' }} &mdash; Emplacement actuel: {{ $eq->emplacement->nom ?? 'Non défini' }}
+                                    N° Série: {{ $eq->numero_serie }} {{ $eq->code_inventaire ? '('.$eq->code_inventaire.')' : '' }}
                                 </option>
                             @endforeach
                         </select>
@@ -138,26 +129,23 @@
                         </p>
                     </div>
 
-                    <!-- Emplacement Source (Mode Quantité) -->
+                    <!-- Situation Source (Mode Quantité) -->
                     <div x-show="!isIndividuel">
-                        <label for="emplacement_source_id" class="block text-xs font-bold text-content uppercase tracking-wider mb-2">
-                            Emplacement source <span class="text-rose-500">*</span>
+                        <label for="situation" class="block text-xs font-bold text-content uppercase tracking-wider mb-2">
+                            Prélever depuis la situation <span class="text-rose-500">*</span>
                         </label>
                         <select
-                            id="emplacement_source_id"
-                            name="emplacement_source_id"
-                            x-model="emplacementSourceId"
+                            id="situation"
+                            name="situation"
+                            x-model="situationSource"
                             class="w-full px-3.5 py-2.5 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                         >
-                            <option value="">Sélectionner l'emplacement de retrait...</option>
-                            @foreach ($emplacements as $emp)
-                                <option value="{{ $emp->id }}" {{ old('emplacement_source_id') == $emp->id ? 'selected' : '' }}>
-                                    {{ $emp->nom }} {{ $emp->site ? '('.$emp->site.')' : '' }}
-                                </option>
-                            @endforeach
+                            <option value="en_stock">En stock (réserve)</option>
+                            <option value="en_utilisation">En utilisation (production)</option>
+                            <option value="en_panne">En panne (mise au rebut)</option>
                         </select>
                         <div x-show="getAvailableStock() !== null" class="mt-1.5 text-[11px]">
-                            Disponibilité à cet emplacement :
+                            Disponibilité dans cette situation :
                             <strong :class="getAvailableStock() > 0 ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'" x-text="getAvailableStock() + ' unité(s)'"></strong>
                         </div>
                     </div>

@@ -13,19 +13,33 @@ class Mouvement extends Model
 
     public const TYPE_ENTREE = 'entree';
     public const TYPE_SORTIE = 'sortie';
+    public const TYPE_SORTIE_DEFINITIVE = 'sortie_definitive';
+    public const TYPE_MISE_UTILISATION = 'mise_utilisation';
+    public const TYPE_RETOUR_STOCK = 'retour_stock';
+    public const TYPE_DECLARATION_PANNE = 'declaration_panne';
+    public const TYPE_REMISE_SERVICE = 'remise_service';
+    public const TYPE_CHANGEMENT_SITUATION = 'changement_situation';
     public const TYPE_TRANSFERT = 'transfert';
     public const TYPE_CORRECTION = 'correction';
 
     public const TYPES = [
-        self::TYPE_ENTREE => 'Entrée en stock',
-        self::TYPE_SORTIE => 'Sortie de stock',
-        self::TYPE_TRANSFERT => 'Transfert d\'emplacement',
-        self::TYPE_CORRECTION => 'Correction d\'inventaire',
+        self::TYPE_ENTREE => 'Entrée de stock',
+        self::TYPE_SORTIE => 'Sortie définitive',
+        self::TYPE_SORTIE_DEFINITIVE => 'Sortie définitive',
+        self::TYPE_MISE_UTILISATION => 'Mise en utilisation',
+        self::TYPE_RETOUR_STOCK => 'Retour en stock',
+        self::TYPE_DECLARATION_PANNE => 'Déclaration de panne',
+        self::TYPE_REMISE_SERVICE => 'Remise en service',
+        self::TYPE_CHANGEMENT_SITUATION => 'Changement de situation',
+        self::TYPE_TRANSFERT => 'Transfert',
+        self::TYPE_CORRECTION => 'Correction du stock',
     ];
 
     protected $fillable = [
         'reference',
         'type',
+        'situation_depart',
+        'situation_arrivee',
         'produit_id',
         'equipement_id',
         'quantite',
@@ -76,6 +90,22 @@ class Mouvement extends Model
         return self::TYPES[$this->type] ?? ucfirst($this->type);
     }
 
+    public function getSituationDepartLabelAttribute(): ?string
+    {
+        if (!$this->situation_depart) {
+            return null;
+        }
+        return Stock::SITUATIONS[$this->situation_depart] ?? ucfirst(str_replace('_', ' ', $this->situation_depart));
+    }
+
+    public function getSituationArriveeLabelAttribute(): ?string
+    {
+        if (!$this->situation_arrivee) {
+            return null;
+        }
+        return Stock::SITUATIONS[$this->situation_arrivee] ?? ucfirst(str_replace('_', ' ', $this->situation_arrivee));
+    }
+
     public function isEntree(): bool
     {
         return $this->type === self::TYPE_ENTREE;
@@ -83,7 +113,7 @@ class Mouvement extends Model
 
     public function isSortie(): bool
     {
-        return $this->type === self::TYPE_SORTIE;
+        return in_array($this->type, [self::TYPE_SORTIE, self::TYPE_SORTIE_DEFINITIVE]);
     }
 
     public function isTransfert(): bool
@@ -133,7 +163,7 @@ class Mouvement extends Model
 
     public function scopeSorties(Builder $query): Builder
     {
-        return $query->where('type', self::TYPE_SORTIE);
+        return $query->whereIn('type', [self::TYPE_SORTIE, self::TYPE_SORTIE_DEFINITIVE]);
     }
 
     public function scopeTransferts(Builder $query): Builder
@@ -170,5 +200,26 @@ class Mouvement extends Model
     public function scopeEquipement(Builder $query, int|string $equipementId): Builder
     {
         return $query->where('equipement_id', $equipementId);
+    }
+
+    public function scopeSituationDepart(Builder $query, ?string $situation): Builder
+    {
+        return $situation ? $query->where('situation_depart', $situation) : $query;
+    }
+
+    public function scopeSituationArrivee(Builder $query, ?string $situation): Builder
+    {
+        return $situation ? $query->where('situation_arrivee', $situation) : $query;
+    }
+
+    public function scopePeriode(Builder $query, ?string $debut, ?string $fin): Builder
+    {
+        if ($debut) {
+            $query->whereDate('date_mouvement', '>=', $debut);
+        }
+        if ($fin) {
+            $query->whereDate('date_mouvement', '<=', $fin);
+        }
+        return $query;
     }
 }

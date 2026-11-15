@@ -8,10 +8,11 @@
             priorite: '{{ old('priorite', 'normale') }}',
             motif: '{{ addslashes(old('motif', '')) }}',
             commentaire: '{{ addslashes(old('commentaire', '')) }}',
-            directeurNom: '{{ addslashes($directeurConfig['nom'] ?? 'Direction Générale') }}',
-            directeurEmail: '{{ addslashes($directeurConfig['email'] ?? '') }}',
+            directeurNom: '{{ addslashes(old('destinataire_nom', $directeurConfig['nom'] ?? 'Direction Générale')) }}',
+            directeurEmail: '{{ addslashes(old('email_destinataire', $directeurConfig['email'] ?? '')) }}',
             isConfigured: {{ $isConfigured ? 'true' : 'false' }},
             userName: '{{ addslashes(Auth::user()->name) }}',
+            userEmail: '{{ addslashes(Auth::user()->email) }}',
             productsMap: {
                 @foreach ($produits as $p)
                     '{{ $p->id }}': {
@@ -22,6 +23,9 @@
                         categorie: '{{ addslashes($p->category->nom ?? ($p->categorie->nom ?? 'Non classé')) }}',
                         typeSuivi: '{{ $p->type_suivi }}',
                         totalStock: {{ $p->total_stock }},
+                        enStock: {{ $p->quantite_en_stock }},
+                        enUtil: {{ $p->quantite_en_utilisation }},
+                        enPanne: {{ $p->quantite_en_panne }},
                         seuilMin: {{ $p->seuil_minimum ?? 0 }},
                         stockStatus: '{{ $p->stock_status }}',
                         photoUrl: '{{ $p->photo_url ?? '' }}'
@@ -41,40 +45,57 @@
                 const designation = p ? p.designation : '[Produit non sélectionné]';
                 const ref = p ? p.reference : '-';
                 const cat = p ? p.categorie : '-';
-                const stock = p ? p.totalStock : 0;
+                const enStock = p ? p.enStock : 0;
+                const enUtil = p ? p.enUtil : 0;
+                const enPanne = p ? p.enPanne : 0;
+                const total = p ? p.totalStock : 0;
                 const seuil = p ? p.seuilMin : 0;
 
                 let prioriteTxt = 'Normale';
                 if (this.priorite === 'importante') prioriteTxt = 'Importante';
                 if (this.priorite === 'urgente') prioriteTxt = 'Urgente';
 
+                const destNom = this.directeurNom ? this.directeurNom.trim() : 'Direction Générale';
+                const destEmail = this.directeurEmail ? this.directeurEmail.trim() : '[Non renseigné]';
+                const nowStr = new Date().toLocaleDateString('fr-FR') + ' à ' + new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
                 let lines = [
-                    'Bonjour,',
+                    '==================================================',
+                    'DE (Expéditeur)   : ' + this.userName + ' <' + this.userEmail + '> (Gestionnaire de stock)',
+                    'À  (Destinataire) : ' + destNom + ' <' + destEmail + '>',
+                    'DATE              : ' + nowStr,
+                    'OBJET             : ' + this.getGeneratedSubject(),
+                    '==================================================',
                     '',
-                    'Je souhaite vous soumettre une demande de matériel informatique pour les besoins de l\'entreprise.',
+                    'Bonjour ' + destNom + ',',
                     '',
-                    'Matériel demandé :',
+                    'Je vous soumets une demande de matériel informatique pour les besoins de l\'entreprise.',
+                    '',
+                    '■ MATÉRIEL DEMANDÉ :',
                     '- Produit : ' + designation,
                     '- Référence : ' + ref,
                     '- Catégorie : ' + cat,
-                    '- Quantité demandée : ' + this.quantite,
+                    '- Quantité demandée : ' + this.quantite + ' unité(s)',
                     '- Priorité : ' + prioriteTxt,
                     '',
-                    'Situation actuelle :',
-                    '- Disponibilité en stock : ' + stock + (stock > 1 ? ' unités' : ' unité')
+                    '■ SITUATION DU STOCK ACTUEL :',
+                    '- En stock (réserve disponible) : ' + enStock + ' unité(s)',
+                    '- En utilisation (postes de travail) : ' + enUtil + ' unité(s)',
+                    '- En panne (hors service) : ' + enPanne + ' unité(s)',
+                    '- Total suivi : ' + total + ' unité(s)'
                 ];
 
                 if (seuil > 0) {
-                    lines.push('- Seuil d\'alerte : ' + seuil + ' unités');
+                    lines.push('- Seuil d\'alerte stock minimum : ' + seuil + ' unité(s)');
                 }
 
                 lines.push('');
-                lines.push('Motif de la demande :');
+                lines.push('■ MOTIF DE LA DEMANDE :');
                 lines.push(this.motif ? this.motif.trim() : '[Motif à renseigner]');
 
                 if (this.commentaire && this.commentaire.trim().length > 0) {
                     lines.push('');
-                    lines.push('Observations complémentaires :');
+                    lines.push('■ OBSERVATIONS COMPLÉMENTAIRES :');
                     lines.push(this.commentaire.trim());
                 }
 
@@ -83,8 +104,11 @@
                 lines.push('');
                 lines.push('Cordialement,');
                 lines.push('');
+                lines.push('--------------------------------------------------');
                 lines.push(this.userName);
-                lines.push('Service informatique — IT Manager Pro');
+                lines.push('Gestionnaire de stock — Service Informatique');
+                lines.push('VAR du Lassureur');
+                lines.push('E-mail : ' + this.userEmail);
 
                 return lines.join('\n');
             }
@@ -113,16 +137,16 @@
             </a>
         </div>
 
-        @if (!$isConfigured)
-            <div class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs flex items-start gap-3">
-                <x-ui.icon name="alert-triangle" class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                <div>
-                    <span class="font-bold">Configuration requise :</span>
-                    L'adresse e-mail de la Direction n'a pas encore été configurée dans l'application. Vous pouvez enregistrer un brouillon, mais l'ouverture directe dans Gmail nécessite que l'administrateur renseigne l'adresse dans
-                    <span class="font-semibold underline">Paramètres &rarr; Destinataire Direction</span>.
-                </div>
+        <div
+            x-show="!directeurEmail"
+            class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs flex items-start gap-3"
+        >
+            <x-ui.icon name="alert-triangle" class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div>
+                <span class="font-bold">Adresse e-mail requise :</span>
+                Veuillez renseigner l'adresse e-mail du destinataire dans le champ de droite ci-dessous pour transmettre la demande via Gmail. (Vous pouvez également définir une adresse permanente dans <strong>Administration &rarr; Paramètres</strong>).
             </div>
-        @endif
+        </div>
 
         @if ($errors->any())
             <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-800 text-xs">
@@ -350,15 +374,69 @@
                         </template>
                     </div>
 
-                    <!-- Destinataire -->
-                    <div class="bg-white rounded-2xl border border-border shadow-xs p-6">
-                        <h4 class="text-xs font-bold text-content uppercase tracking-wider mb-3 flex items-center gap-2">
-                            <x-ui.icon name="mail" class="w-4 h-4 text-primary" />
-                            Destinataire de l'e-mail
-                        </h4>
-                        <div class="text-xs text-content space-y-1">
-                            <div class="font-semibold text-content" x-text="directeurNom"></div>
-                            <div class="font-mono text-[11px] text-content-secondary" x-text="directeurEmail || 'Non configuré'"></div>
+                    <!-- Identification de l'e-mail (Expéditeur & Destinataire) -->
+                    <div class="bg-white rounded-2xl border border-border shadow-xs p-6 space-y-5">
+                        <div class="border-b border-border pb-3">
+                            <h4 class="text-xs font-bold text-content uppercase tracking-wider flex items-center gap-2">
+                                <x-ui.icon name="mail" class="w-4 h-4 text-primary" />
+                                Identification de l'e-mail (De ... À ...)
+                            </h4>
+                            <p class="text-[11px] text-content-secondary mt-1">
+                                Identifie précisément qui transmet la demande et qui en est le destinataire.
+                            </p>
+                        </div>
+
+                        <!-- 1. DE : Expéditeur (Qui envoie) -->
+                        <div class="p-3.5 bg-surface/70 border border-border rounded-xl space-y-1.5">
+                            <span class="text-[10px] font-extrabold text-primary uppercase tracking-wider block">
+                                📤 De (Expéditeur qui envoie)
+                            </span>
+                            <div class="text-xs font-bold text-content flex items-center justify-between">
+                                <span>{{ Auth::user()->name }}</span>
+                                <span class="text-[10px] px-2 py-0.5 rounded bg-primary/10 text-primary font-semibold">Gestionnaire de stock</span>
+                            </div>
+                            <div class="text-[11px] text-content-secondary font-mono">
+                                {{ Auth::user()->email }}
+                            </div>
+                        </div>
+
+                        <!-- 2. À : Destinataire (Qui reçoit) -->
+                        <div class="space-y-3">
+                            <span class="text-[10px] font-extrabold text-emerald-700 uppercase tracking-wider block">
+                                📥 À (Destinataire qui reçoit)
+                            </span>
+
+                            <div>
+                                <label for="destinataire_nom" class="block text-[11px] font-bold text-content uppercase tracking-wider mb-1">
+                                    Nom ou Service destinataire
+                                </label>
+                                <input
+                                    type="text"
+                                    id="destinataire_nom"
+                                    name="destinataire_nom"
+                                    x-model="directeurNom"
+                                    placeholder="ex: Direction Générale"
+                                    class="w-full px-3 py-2 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-semibold"
+                                >
+                            </div>
+
+                            <div>
+                                <label for="email_destinataire" class="block text-[11px] font-bold text-content uppercase tracking-wider mb-1">
+                                    Adresse e-mail du destinataire <span class="text-rose-500">*</span>
+                                </label>
+                                <input
+                                    type="email"
+                                    id="email_destinataire"
+                                    name="email_destinataire"
+                                    x-model="directeurEmail"
+                                    required
+                                    placeholder="ex: direction@votre-entreprise.com"
+                                    class="w-full px-3 py-2 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-mono"
+                                >
+                                @error('email_destinataire')
+                                    <p class="text-[11px] text-rose-600 mt-1">{{ $message }}</p>
+                                @enderror
+                            </div>
                         </div>
                     </div>
 
@@ -375,6 +453,20 @@
                             Aperçu du message préparé
                         </h3>
                         <p class="text-xs text-content-secondary mt-0.5">Voici le texte exact qui sera injecté dans la fenêtre de composition de Gmail.</p>
+                    </div>
+                </div>
+
+                <!-- En-tête De ... À ... visuel -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 p-3.5 bg-surface/80 rounded-xl border border-border text-xs">
+                    <div>
+                        <span class="text-[10px] font-bold text-content-secondary uppercase block">Expéditeur (De) :</span>
+                        <span class="font-semibold text-content">{{ Auth::user()->name }}</span>
+                        <span class="text-content-secondary font-mono text-[11px]">&lt;{{ Auth::user()->email }}&gt;</span>
+                    </div>
+                    <div>
+                        <span class="text-[10px] font-bold text-content-secondary uppercase block">Destinataire (À) :</span>
+                        <span class="font-semibold text-content" x-text="directeurNom || 'Direction Générale'"></span>
+                        <span class="text-content-secondary font-mono text-[11px]" x-text="'<' + (directeurEmail || 'Non spécifié') + '>'"></span>
                     </div>
                 </div>
 
@@ -419,9 +511,9 @@
                         type="submit"
                         name="action_type"
                         value="prepare_gmail"
-                        :disabled="!isConfigured"
+                        :disabled="!directeurEmail"
                         class="px-6 py-2.5 rounded-xl bg-accent hover:bg-accent-light text-white text-xs font-semibold shadow-xs transition-colors inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                        :title="!isConfigured ? 'Veuillez configurer l\'adresse de la Direction dans les paramètres' : ''"
+                        :title="!directeurEmail ? 'Veuillez renseigner l\'adresse e-mail du destinataire' : ''"
                     >
                         <x-ui.icon name="send" class="w-4 h-4" />
                         Préparer & Valider la demande

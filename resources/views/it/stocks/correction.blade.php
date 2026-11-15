@@ -1,4 +1,4 @@
-<x-layouts.dashboard title="Correction d'inventaire" :breadcrumbs="['Gestion du stock' => route('it.stocks.index'), 'Correction de stock' => null]">
+<x-layouts.dashboard title="Correction du stock" :breadcrumbs="['Gestion du stock' => route('it.stocks.index'), 'Correction de stock' => null]">
 
     <div class="max-w-4xl mx-auto">
         <!-- Header -->
@@ -8,9 +8,9 @@
                     <x-ui.icon name="wrench" class="w-6 h-6" />
                 </div>
                 <div>
-                    <h2 class="text-xl font-bold text-content tracking-tight">Régularisation d'inventaire (Correction)</h2>
+                    <h2 class="text-xl font-bold text-content tracking-tight">Correction du stock</h2>
                     <p class="text-xs sm:text-sm text-content-secondary mt-1">
-                        Ajustement exceptionnel du stock constaté lors d'un inventaire physique (écart, perte, casse ou réconciliation).
+                        Ajustez la quantité en stock suite à un inventaire physique.
                     </p>
                 </div>
             </div>
@@ -42,21 +42,21 @@
             class="bg-white rounded-2xl border border-border shadow-xs p-6 sm:p-8"
             x-data="{
                 produitId: '{{ old('produit_id', request('produit_id', '')) }}',
-                emplacementId: '{{ old('emplacement_id', '') }}',
+                situation: '{{ old('situation', 'en_stock') }}',
                 nouvelleQuantite: {{ old('nouvelle_quantite', 0) }},
                 stockLines: {
                     @foreach($produits as $p)
                         '{{ $p->id }}': {
-                            @foreach($p->stocks as $st)
-                                '{{ $st->emplacement_id }}': {{ $st->quantite }},
-                            @endforeach
+                            'en_stock': {{ $p->quantite_en_stock }},
+                            'en_utilisation': {{ $p->quantite_en_utilisation }},
+                            'en_panne': {{ $p->quantite_en_panne }},
                         },
                     @endforeach
                 },
                 getTheorique() {
-                    if (!this.produitId || !this.emplacementId) return 0;
-                    if (this.stockLines[this.produitId] && this.stockLines[this.produitId][this.emplacementId] !== undefined) {
-                        return this.stockLines[this.produitId][this.emplacementId];
+                    if (!this.produitId || !this.situation) return 0;
+                    if (this.stockLines[this.produitId] && this.stockLines[this.produitId][this.situation] !== undefined) {
+                        return this.stockLines[this.produitId][this.situation];
                     }
                     return 0;
                 },
@@ -71,9 +71,9 @@
                 <div class="border-b border-border pb-5 mb-5">
                     <h3 class="text-sm font-bold text-content uppercase tracking-wider mb-1 flex items-center gap-2">
                         <x-ui.icon name="box" class="w-4 h-4 text-accent" />
-                        Article & Localisation de l'inventaire
+                        Article & Situation inventoriée
                     </h3>
-                    <p class="text-xs text-content-secondary">Sélectionnez le consommable et l'emplacement concerné par le recomptage physique.</p>
+                    <p class="text-xs text-content-secondary">Sélectionnez le matériel et la situation concernée par le recomptage physique.</p>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -98,30 +98,27 @@
                         </select>
                     </div>
 
-                    <!-- Emplacement -->
+                    <!-- Situation -->
                     <div>
-                        <label for="emplacement_id" class="block text-xs font-bold text-content uppercase tracking-wider mb-2">
-                            Emplacement inventorié <span class="text-rose-500">*</span>
+                        <label for="situation" class="block text-xs font-bold text-content uppercase tracking-wider mb-2">
+                            Situation inventoriée <span class="text-rose-500">*</span>
                         </label>
                         <select
-                            id="emplacement_id"
-                            name="emplacement_id"
-                            x-model="emplacementId"
+                            id="situation"
+                            name="situation"
+                            x-model="situation"
                             required
                             class="w-full px-3.5 py-2.5 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                         >
-                            <option value="">Sélectionner l'emplacement...</option>
-                            @foreach ($emplacements as $emp)
-                                <option value="{{ $emp->id }}" {{ old('emplacement_id') == $emp->id ? 'selected' : '' }}>
-                                    {{ $emp->nom }} {{ $emp->site ? '('.$emp->site.')' : '' }}
-                                </option>
-                            @endforeach
+                            <option value="en_stock">En stock (disponible en réserve)</option>
+                            <option value="en_utilisation">En utilisation (bureaux / production)</option>
+                            <option value="en_panne">En panne (hors service)</option>
                         </select>
                     </div>
                 </div>
 
                 <!-- Simulation d'écart / Différence -->
-                <div class="p-5 bg-surface rounded-xl border border-border" x-show="produitId && emplacementId">
+                <div class="p-5 bg-surface rounded-xl border border-border" x-show="produitId">
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
                         <div class="p-3 bg-white rounded-lg border border-border">
                             <span class="block text-[11px] font-semibold text-content-secondary uppercase">Stock théorique actuel</span>

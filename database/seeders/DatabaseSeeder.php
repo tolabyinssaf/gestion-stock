@@ -31,7 +31,7 @@ class DatabaseSeeder extends Seeder
         User::updateOrCreate(
             ['email' => 'respo@gmail.com'],
             [
-                'name' => 'Responsable IT',
+                'name' => 'Gestionnaire de stock',
                 'password' => Hash::make('123456'),
                 'role' => User::ROLE_RESPONSABLE_IT,
                 'status' => User::STATUS_ACTIVE,

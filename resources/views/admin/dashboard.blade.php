@@ -19,7 +19,7 @@
                         </x-ui.badge>
                     </div>
                     <p class="text-xs sm:text-sm text-content-secondary mt-1 max-w-2xl leading-relaxed">
-                        Bienvenue dans votre console de supervision générale. Supervisez les utilisateurs, les accès et le statut global du parc informatique.
+                        Bienvenue dans votre console de supervision générale. Supervisez les utilisateurs, les accès et le statut global du stock informatique.
                     </p>
                 </div>
             </div>
@@ -84,9 +84,9 @@
                 <span class="text-2xl font-bold text-primary mt-1 block">{{ $adminCount }}</span>
             </div>
 
-            <!-- 5. Responsables IT -->
+            <!-- 5. Gestionnaires de stock -->
             <div class="bg-white rounded-xl border border-border p-4 shadow-2xs">
-                <span class="text-xs font-medium text-content-secondary uppercase tracking-wider block">Responsables IT</span>
+                <span class="text-xs font-medium text-content-secondary uppercase tracking-wider block">Gestionnaires de stock</span>
                 <span class="text-2xl font-bold text-accent mt-1 block">{{ $itCount }}</span>
             </div>
         </div>
@@ -97,35 +97,35 @@
         <div class="flex items-center justify-between mb-4">
             <div>
                 <h3 class="text-sm font-bold text-content uppercase tracking-wider">
-                    Supervision globale du parc informatique
+                    Supervision globale du stock
                 </h3>
-                <p class="text-xs text-content-secondary mt-0.5">Indicateurs généraux du matériel et alertes de continuité</p>
+                <p class="text-xs text-content-secondary mt-0.5">Indicateurs généraux du matériel et alertes de stock</p>
             </div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
             <x-ui.stat-card
-                title="Total des équipements"
+                title="Total des matériels"
                 :value="$totalEquipements"
                 icon="hard-drive"
                 color="primary"
-                subtext="Machines et matériels sérialisés"
+                subtext="Total des matériels enregistrés"
             />
 
             <x-ui.stat-card
-                title="Références catalogue"
+                title="Produits enregistrés"
                 :value="$totalProduits"
                 icon="package"
                 color="secondary"
-                subtext="Modèles informatiques actifs"
+                subtext="Produits actifs"
             />
 
             <x-ui.stat-card
-                title="Produits en rupture"
+                title="Produits épuisés"
                 :value="$ruptureCount"
                 icon="alert-circle"
                 color="{{ $ruptureCount > 0 ? 'rose' : 'emerald' }}"
-                subtext="{{ $ruptureCount > 0 ? 'Articles sans stock disponible' : 'Aucune rupture critique' }}"
+                subtext="{{ $ruptureCount > 0 ? 'Articles sans stock disponible' : 'Aucun produit épuisé' }}"
             />
         </div>
     </div>

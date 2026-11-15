@@ -99,7 +99,7 @@
         @endif
     </div>
 
-    <!-- 3. Exactement quatre cartes statistiques -->
+    <!-- 3. Quatre cartes statistiques adaptées aux situations du matériel -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <!-- Carte 1 — Produits enregistrés -->
         <div class="bg-white rounded-xl border border-border p-5 shadow-xs flex items-center justify-between gap-4">
@@ -110,6 +110,7 @@
                 <p class="text-2xl font-extrabold text-content">
                     {{ $totalProduits }}
                 </p>
+                <p class="text-[11px] text-content-secondary mt-0.5">Références actives</p>
             </div>
             <div class="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
                 <x-ui.icon name="package" class="w-6 h-6" />
@@ -122,42 +123,45 @@
                 <p class="text-xs font-bold text-content-secondary uppercase tracking-wider mb-1">
                     Unités en stock
                 </p>
-                <p class="text-2xl font-extrabold text-primary">
-                    {{ number_format($totalUnitesStock) }}
+                <p class="text-2xl font-extrabold text-emerald-600">
+                    {{ number_format($totalEnStock) }}
                 </p>
+                <p class="text-[11px] text-content-secondary mt-0.5">Disponibles en réserve</p>
             </div>
-            <div class="w-12 h-12 rounded-xl bg-blue-50 text-primary-light flex items-center justify-center flex-shrink-0">
+            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0">
                 <x-ui.icon name="boxes" class="w-6 h-6" />
             </div>
         </div>
 
-        <!-- Carte 3 — Stock faible -->
+        <!-- Carte 3 — Unités en utilisation -->
         <div class="bg-white rounded-xl border border-border p-5 shadow-xs flex items-center justify-between gap-4">
             <div>
                 <p class="text-xs font-bold text-content-secondary uppercase tracking-wider mb-1">
-                    Stock faible
+                    Unités en utilisation
                 </p>
-                <p class="text-2xl font-extrabold text-accent">
-                    {{ $stockFaibleCount }}
+                <p class="text-2xl font-extrabold text-primary">
+                    {{ number_format($totalEnUtilisation) }}
                 </p>
+                <p class="text-[11px] text-content-secondary mt-0.5">Bureaux et production</p>
             </div>
-            <div class="w-12 h-12 rounded-xl bg-amber-50 text-accent flex items-center justify-center flex-shrink-0">
-                <x-ui.icon name="alert-triangle" class="w-6 h-6" />
+            <div class="w-12 h-12 rounded-xl bg-blue-50 text-primary flex items-center justify-center flex-shrink-0">
+                <x-ui.icon name="laptop" class="w-6 h-6" />
             </div>
         </div>
 
-        <!-- Carte 4 — Produits épuisés -->
+        <!-- Carte 4 — Unités en panne -->
         <div class="bg-white rounded-xl border border-border p-5 shadow-xs flex items-center justify-between gap-4">
             <div>
                 <p class="text-xs font-bold text-content-secondary uppercase tracking-wider mb-1">
-                    Produits épuisés
+                    Unités en panne
                 </p>
-                <p class="text-2xl font-extrabold {{ $produitsEpuisesCount > 0 ? 'text-rose-600' : 'text-emerald-600' }}">
-                    {{ $produitsEpuisesCount }}
+                <p class="text-2xl font-extrabold {{ $totalEnPanne > 0 ? 'text-rose-600' : 'text-content' }}">
+                    {{ number_format($totalEnPanne) }}
                 </p>
+                <p class="text-[11px] text-content-secondary mt-0.5">Hors service / à réparer</p>
             </div>
-            <div class="w-12 h-12 rounded-xl {{ $produitsEpuisesCount > 0 ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600' }} flex items-center justify-center flex-shrink-0">
-                <x-ui.icon name="package-x" class="w-6 h-6" />
+            <div class="w-12 h-12 rounded-xl {{ $totalEnPanne > 0 ? 'bg-rose-50 text-rose-600' : 'bg-surface text-content-secondary' }} flex items-center justify-center flex-shrink-0">
+                <x-ui.icon name="alert-octagon" class="w-6 h-6" />
             </div>
         </div>
     </div>
@@ -282,7 +286,7 @@
                             <th class="pb-3 px-3">Matériel</th>
                             <th class="pb-3 px-3">Mouvement</th>
                             <th class="pb-3 px-3 text-right">Quantité</th>
-                            <th class="pb-3 px-3">Emplacement</th>
+                            <th class="pb-3 px-3">Situation</th>
                             <th class="pb-3 px-3">Date</th>
                             <th class="pb-3 px-3">Utilisateur</th>
                         </tr>
@@ -327,14 +331,14 @@
                                     @endif
                                 </td>
                                 <td class="py-3 px-3 text-content-secondary text-[11px]">
-                                    @if ($m->type === 'entree')
-                                        {{ $m->emplacementDestination->nom ?? 'Stock' }}
-                                    @elseif ($m->type === 'sortie')
-                                        {{ $m->emplacementSource->nom ?? 'Stock' }}
-                                    @elseif ($m->type === 'transfert')
-                                        {{ $m->emplacementSource->nom ?? '-' }} &rarr; {{ $m->emplacementDestination->nom ?? '-' }}
+                                    @if ($m->situation_depart_label && $m->situation_arrivee_label)
+                                        <span class="font-medium text-content">{{ $m->situation_depart_label }}</span> &rarr; <span class="font-medium text-content">{{ $m->situation_arrivee_label }}</span>
+                                    @elseif ($m->situation_arrivee_label)
+                                        <span class="font-medium text-emerald-700">{{ $m->situation_arrivee_label }}</span>
+                                    @elseif ($m->situation_depart_label)
+                                        <span class="font-medium text-rose-700">{{ $m->situation_depart_label }}</span>
                                     @else
-                                        {{ $m->emplacementDestination->nom ?? $m->emplacementSource->nom ?? '-' }}
+                                        -
                                     @endif
                                 </td>
                                 <td class="py-3 px-3 text-content-secondary whitespace-nowrap">

@@ -53,7 +53,7 @@
 
         <!-- Filters Form (Consulter avec filtres adaptés) -->
         <div class="bg-white rounded-2xl border border-border p-5 mb-8 shadow-xs">
-            <form method="GET" action="{{ route('it.reports.inventaire') }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+            <form method="GET" action="{{ route('it.reports.inventaire') }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
                 <!-- Search -->
                 <div class="relative">
                     <input
@@ -75,16 +75,6 @@
                     </select>
                 </div>
 
-                <!-- Emplacement -->
-                <div>
-                    <select name="emplacement_id" class="w-full px-3 py-2.5 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20">
-                        <option value="">Tous emplacements</option>
-                        @foreach ($emplacements as $emp)
-                            <option value="{{ $emp->id }}" {{ request('emplacement_id') == $emp->id ? 'selected' : '' }}>{{ $emp->nom }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
                 <!-- État du stock -->
                 <div>
                     <select name="stock_alert" class="w-full px-3 py-2.5 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20">
@@ -100,7 +90,7 @@
                     <button type="submit" class="w-full px-4 py-2.5 bg-primary text-white rounded-xl text-xs font-semibold hover:bg-primary-light transition-colors">
                         Filtrer
                     </button>
-                    @if (request()->hasAny(['search', 'category_id', 'emplacement_id', 'stock_alert']))
+                    @if (request()->hasAny(['search', 'category_id', 'stock_alert']))
                         <a href="{{ route('it.reports.inventaire') }}" class="p-2.5 border border-border hover:bg-surface text-content-secondary rounded-xl transition-colors" title="Réinitialiser">
                             <x-ui.icon name="x" class="w-4 h-4" />
                         </a>
@@ -111,7 +101,7 @@
 
         <!-- Table -->
         <x-ui.table
-            :headers="['Nom du matériel', 'Catégorie', 'Marque / Réf.', 'Quantité totale', 'Emplacement(s)', 'État du stock']"
+            :headers="['Matériel', 'Catégorie', 'En stock', 'En utilisation', 'En panne', 'Total']"
             :isEmpty="$materiels->isEmpty()"
             emptyIcon="boxes"
             emptyTitle="Aucun matériel correspondant"
@@ -119,16 +109,16 @@
         >
             @foreach ($materiels as $m)
                 @php
+                    $enStock = $m->quantite_en_stock;
+                    $enUtil = $m->quantite_en_utilisation;
+                    $enPanne = $m->quantite_en_panne;
                     $total = $m->total_stock;
-                    $status = $m->stock_status;
                 @endphp
                 <tr class="hover:bg-surface/50 transition-colors">
-                    <!-- Nom du matériel -->
+                    <!-- Matériel -->
                     <td class="px-5 py-3">
                         <div class="text-xs font-bold text-content">{{ $m->nom ?? $m->designation ?? 'N/A' }}</div>
-                        @if($m->modele)
-                            <div class="text-[11px] text-content-secondary">{{ $m->modele }}</div>
-                        @endif
+                        <div class="text-[11px] text-content-secondary mt-0.5 font-mono">Réf : {{ $m->reference ?? '-' }}</div>
                     </td>
 
                     <!-- Catégorie -->
@@ -138,53 +128,30 @@
                         </span>
                     </td>
 
-                    <!-- Marque / Réf -->
-                    <td class="px-5 py-3 text-xs">
-                        <div class="font-mono text-xs font-semibold text-content">{{ $m->reference ?? '-' }}</div>
-                        @if ($m->marque)
-                            <div class="text-[11px] text-content-secondary">{{ $m->marque }}</div>
-                        @endif
+                    <!-- En stock -->
+                    <td class="px-5 py-3 text-center">
+                        <span class="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded font-bold text-xs {{ $enStock > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-surface text-content-secondary' }}">
+                            {{ $enStock }}
+                        </span>
                     </td>
 
-                    <!-- Quantité totale -->
-                    <td class="px-5 py-3 text-xs font-bold {{ $total === 0 ? 'text-rose-600' : ($total === 1 ? 'text-accent' : 'text-content') }}">
-                        {{ $total }} unité(s)
+                    <!-- En utilisation -->
+                    <td class="px-5 py-3 text-center">
+                        <span class="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded font-bold text-xs {{ $enUtil > 0 ? 'bg-blue-50 text-primary border border-blue-200' : 'bg-surface text-content-secondary' }}">
+                            {{ $enUtil }}
+                        </span>
                     </td>
 
-                    <!-- Emplacement(s) -->
-                    <td class="px-5 py-3 text-xs">
-                        @if($m->stocks->where('quantite', '>', 0)->isEmpty())
-                            <span class="text-content-secondary italic text-[11px]">Aucun stock consigné</span>
-                        @else
-                            <div class="flex flex-wrap gap-1 max-w-xs">
-                                @foreach($m->stocks->where('quantite', '>', 0) as $stockLine)
-                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-blue-50 border border-blue-200 text-primary">
-                                        <span>{{ $stockLine->emplacement->nom ?? 'Inconnu' }} :</span>
-                                        <strong>{{ $stockLine->quantite }}</strong>
-                                    </span>
-                                @endforeach
-                            </div>
-                        @endif
+                    <!-- En panne -->
+                    <td class="px-5 py-3 text-center">
+                        <span class="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded font-bold text-xs {{ $enPanne > 0 ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-surface text-content-secondary' }}">
+                            {{ $enPanne }}
+                        </span>
                     </td>
 
-                    <!-- État du stock -->
-                    <td class="px-5 py-3 text-xs">
-                        @if ($total === 0)
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
-                                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                                Rupture
-                            </span>
-                        @elseif ($total === 1)
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                                Stock faible
-                            </span>
-                        @else
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                Disponible
-                            </span>
-                        @endif
+                    <!-- Total -->
+                    <td class="px-5 py-3 text-center text-xs font-extrabold text-content">
+                        {{ $total }}
                     </td>
                 </tr>
             @endforeach

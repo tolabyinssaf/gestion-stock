@@ -8,6 +8,7 @@ use App\Models\Categorie;
 use App\Models\Emplacement;
 use App\Models\Mouvement;
 use App\Models\Produit;
+use App\Models\Stock;
 use App\Services\DemandeGmailService;
 use App\Services\ExportService;
 use Illuminate\Http\JsonResponse;
@@ -44,18 +45,17 @@ class ReportController extends Controller
 
     /**
      * Rapport 1 — Rapport de stock
-     * Inventaire des produits, catégories, quantités, emplacements et états du stock.
-     * Actions : Consulter (HTML), Exporter (Excel/PDF), Envoyer (Téléchargement PDF + Ouverture Gmail).
+     * Inventaire des produits, catégories, En stock, En utilisation, En panne, Total, emplacements.
      */
     public function inventaire(Request $request): View|Response|JsonResponse
     {
         $search = $request->string('search')->trim()->value();
         $categoryId = $request->input('category_id');
-        $emplacementId = $request->input('emplacement_id');
+        $situation = $request->string('situation')->trim()->value();
         $stockAlert = $request->string('stock_alert')->trim()->value();
 
         $query = Produit::query()
-            ->with(['categorie', 'stocks.emplacement'])
+            ->with(['categorie', 'stocks'])
             ->where('statut', Produit::STATUT_ACTIF)
             ->when($search, function ($q) use ($search) {
                 $q->where(function ($sub) use ($search) {
@@ -66,37 +66,31 @@ class ReportController extends Controller
                 });
             })
             ->when($categoryId, fn($q) => $q->where('categorie_id', $categoryId))
-            ->when($emplacementId, function ($q) use ($emplacementId) {
-                $q->whereHas('stocks', fn($s) => $s->where('emplacement_id', $emplacementId)->where('quantite', '>', 0));
+            ->when($situation && $situation !== 'tous', function ($q) use ($situation) {
+                $q->enSituation($situation);
             });
 
         if ($stockAlert === 'rupture') {
-            $query->whereRaw('(SELECT COALESCE(SUM(quantite), 0) FROM stocks WHERE stocks.produit_id = produits.id) = 0');
+            $query->whereRaw('(SELECT COALESCE(SUM(quantite), 0) FROM stocks WHERE stocks.produit_id = produits.id AND (stocks.situation = "en_stock" OR stocks.situation IS NULL)) = 0');
         } elseif ($stockAlert === 'faible') {
-            $query->whereRaw('(SELECT COALESCE(SUM(quantite), 0) FROM stocks WHERE stocks.produit_id = produits.id) = 1');
+            $query->whereRaw('(SELECT COALESCE(SUM(quantite), 0) FROM stocks WHERE stocks.produit_id = produits.id AND (stocks.situation = "en_stock" OR stocks.situation IS NULL)) > 0')
+                  ->whereRaw('(SELECT COALESCE(SUM(quantite), 0) FROM stocks WHERE stocks.produit_id = produits.id AND (stocks.situation = "en_stock" OR stocks.situation IS NULL)) <= COALESCE(NULLIF(produits.seuil_minimum, 0), 1)');
         } elseif ($stockAlert === 'normal' || $stockAlert === 'disponible') {
-            $query->whereRaw('(SELECT COALESCE(SUM(quantite), 0) FROM stocks WHERE stocks.produit_id = produits.id) > 1');
+            $query->whereRaw('(SELECT COALESCE(SUM(quantite), 0) FROM stocks WHERE stocks.produit_id = produits.id AND (stocks.situation = "en_stock" OR stocks.situation IS NULL)) > COALESCE(NULLIF(produits.seuil_minimum, 0), 1)');
         }
 
         // Export Excel (.csv compatible Excel avec UTF-8 BOM)
         if ($request->input('export') === 'excel') {
             $items = $query->orderBy('nom')->get();
-            $headers = ['Nom du matériel', 'Catégorie', 'Marque', 'Référence', 'Quantité totale', 'Emplacement(s)', 'État du stock'];
+            $headers = ['Matériel', 'Catégorie', 'En stock', 'En utilisation', 'En panne', 'Total'];
             $rows = $items->map(function ($p) {
-                $emplacementsStr = $p->stocks->filter(fn($s) => $s->quantite > 0)
-                    ->map(fn($s) => ($s->emplacement->nom ?? 'Inconnu') . ' (' . $s->quantite . ')')
-                    ->implode(', ');
-                if (empty($emplacementsStr)) {
-                    $emplacementsStr = 'Aucun stock consigné';
-                }
                 return [
                     $p->nom ?? $p->designation ?? '-',
                     $p->categorie->nom ?? 'Non classé',
-                    $p->marque ?? '-',
-                    $p->reference ?? '-',
+                    $p->quantite_en_stock,
+                    $p->quantite_en_utilisation,
+                    $p->quantite_en_panne,
                     $p->total_stock,
-                    $emplacementsStr,
-                    $p->stock_status_label,
                 ];
             });
 
@@ -104,33 +98,27 @@ class ReportController extends Controller
                 'rapport_stock_' . now()->format('Ymd_His') . '.csv',
                 $headers,
                 $rows,
-                ['title' => 'Rapport de stock — Inventaire du matériel informatique', 'filters' => $this->buildFilterSummary($request)]
+                ['title' => 'Rapport de stock — VAR du Lassureur', 'filters' => $this->buildFilterSummary($request)]
             );
         }
 
         // Export PDF
         if ($request->input('export') === 'pdf') {
             $items = $query->orderBy('nom')->get();
-            $headers = ['Nom du matériel', 'Catégorie', 'Marque / Réf.', 'Quantité', 'Emplacement(s)', 'État du stock'];
+            $headers = ['Matériel', 'Catégorie', 'En stock', 'En utilisation', 'En panne', 'Total'];
             $rows = $items->map(function ($p) {
-                $emplacementsStr = $p->stocks->filter(fn($s) => $s->quantite > 0)
-                    ->map(fn($s) => ($s->emplacement->nom ?? 'Inconnu') . ' (' . $s->quantite . ')')
-                    ->implode(', ');
-                if (empty($emplacementsStr)) {
-                    $emplacementsStr = 'Aucun stock consigné';
-                }
                 return [
                     $p->nom ?? $p->designation ?? '-',
                     $p->categorie->nom ?? 'Non classé',
-                    ($p->marque ? $p->marque . ' — ' : '') . ($p->reference ?? '-'),
-                    $p->total_stock . ' unité(s)',
-                    $emplacementsStr,
-                    $p->stock_status_label,
+                    $p->quantite_en_stock,
+                    $p->quantite_en_utilisation,
+                    $p->quantite_en_panne,
+                    $p->total_stock,
                 ];
             });
 
             $html = $this->exportService->renderPdfHtml(
-                'Rapport de Stock — Inventaire du Matériel Informatique',
+                'Rapport de Stock — Stock Matériel',
                 $headers,
                 $rows,
                 ['filters' => $this->buildFilterSummary($request)],
@@ -147,17 +135,35 @@ class ReportController extends Controller
             $destinataireNom = $destinataireConfig['nom'] ?? 'Direction Générale';
 
             $totalArticles = (clone $query)->count();
-            $totalUnites = (int) (clone $query)->get()->sum('total_stock');
+            $itemsAll = (clone $query)->get();
+            $totalEnStock = $itemsAll->sum('quantite_en_stock');
+            $totalEnUtil = $itemsAll->sum('quantite_en_utilisation');
+            $totalEnPanne = $itemsAll->sum('quantite_en_panne');
+            $totalUnites = $itemsAll->sum('total_stock');
 
-            $sujet = 'Rapport de stock informatique — ' . now()->format('d/m/Y');
+            $senderUser = auth()->user();
+            $senderNom = $senderUser?->name ?? 'Gestionnaire de stock';
+            $senderEmail = $senderUser?->email ?? config('mail.from.address', '');
+
+            $sujet = 'Rapport de stock matériel — ' . now()->format('d/m/Y');
             $corpsLignes = [
+                '==================================================',
+                'DE (Expéditeur)   : ' . $senderNom . ' <' . $senderEmail . '> (Gestionnaire de stock)',
+                'À  (Destinataire) : ' . $destinataireNom . ' <' . $destinataireEmail . '>',
+                'DATE              : ' . now()->format('d/m/Y à H:i'),
+                'OBJET             : ' . $sujet,
+                '==================================================',
+                '',
                 'Bonjour ' . $destinataireNom . ',',
                 '',
                 'Veuillez trouver ci-joint le rapport de stock de matériel informatique édité le ' . now()->format('d/m/Y à H:i') . '.',
                 '',
-                'Synthèse des données filtrées :',
-                '- Total références répertoriées : ' . $totalArticles,
-                '- Total unités disponibles : ' . $totalUnites,
+                '■ SYNTHÈSE DES SITUATIONS DU STOCK :',
+                '- Matériels enregistrés : ' . $totalArticles,
+                '- En stock (réserve disponible) : ' . $totalEnStock,
+                '- En utilisation (postes de travail) : ' . $totalEnUtil,
+                '- En panne (hors service) : ' . $totalEnPanne,
+                '- Total global des unités : ' . $totalUnites,
             ];
 
             $filterSummary = $this->buildFilterSummary($request);
@@ -166,11 +172,11 @@ class ReportController extends Controller
             }
 
             $corpsLignes[] = '';
-            $corpsLignes[] = 'Le fichier PDF correspondant a été généré depuis IT Manager Pro. Pensez à l\'insérer en pièce jointe de ce courriel avant l\'envoi.';
+            $corpsLignes[] = 'Le fichier PDF correspondant a été généré depuis Stock Matériel. Pensez à l\'insérer en pièce jointe de ce courriel avant l\'envoi.';
             $corpsLignes[] = '';
             $corpsLignes[] = 'Cordialement,';
-            $corpsLignes[] = auth()->user()->name ?? 'Responsable IT';
-            $corpsLignes[] = 'Service informatique — IT Manager Pro';
+            $corpsLignes[] = auth()->user()->name ?? 'Gestionnaire de stock';
+            $corpsLignes[] = 'Service informatique — VAR du Lassureur';
 
             $corps = implode("\r\n", $corpsLignes);
             $gmailUrl = $this->gmailService->buildGmailUrl($destinataireEmail, $sujet, $corps);
@@ -193,8 +199,7 @@ class ReportController extends Controller
 
     /**
      * Rapport 2 — Rapport des mouvements
-     * Entrées, sorties, transferts et corrections avec dates, quantités et utilisateurs.
-     * Actions : Consulter (HTML), Exporter (Excel/PDF), Envoyer (Téléchargement PDF + Ouverture Gmail).
+     * Entrées, sorties, transferts, changements de situation et corrections avec dates, situations, quantités.
      */
     public function mouvements(Request $request): View|Response|JsonResponse
     {
@@ -210,7 +215,21 @@ class ReportController extends Controller
         }
 
         if ($type = $request->string('type')->trim()->value()) {
-            $query->where('type', $type);
+            if ($type !== 'tous') {
+                $query->where('type', $type);
+            }
+        }
+
+        if ($situationDepart = $request->string('situation_depart')->trim()->value()) {
+            if ($situationDepart !== 'tous') {
+                $query->where('situation_depart', $situationDepart);
+            }
+        }
+
+        if ($situationArrivee = $request->string('situation_arrivee')->trim()->value()) {
+            if ($situationArrivee !== 'tous') {
+                $query->where('situation_arrivee', $situationArrivee);
+            }
         }
 
         if ($dateDebut = $request->input('date_debut')) {
@@ -224,21 +243,15 @@ class ReportController extends Controller
         // Export Excel (.csv compatible Excel avec UTF-8 BOM)
         if ($request->input('export') === 'excel') {
             $items = $query->latest('date_mouvement')->get();
-            $headers = ['Date', 'Produit', 'Type d\'opération', 'Quantité', 'Emplacement concerné', 'Utilisateur', 'Motif'];
+            $headers = ['Date', 'Matériel', 'Opération', 'Situation départ', 'Situation arrivée', 'Quantité', 'Utilisateur', 'Motif'];
             $rows = $items->map(function ($m) {
-                $emplacementLabel = match ($m->type) {
-                    'entree' => $m->emplacementDestination->nom ?? 'Stock',
-                    'sortie' => $m->emplacementSource->nom ?? 'Stock',
-                    'transfert' => ($m->emplacementSource->nom ?? '?') . ' -> ' . ($m->emplacementDestination->nom ?? '?'),
-                    'correction' => $m->emplacementDestination->nom ?? ($m->emplacementSource->nom ?? 'Stock'),
-                    default => '-',
-                };
                 return [
                     $m->date_mouvement ? $m->date_mouvement->format('d/m/Y') : '-',
                     $m->produit->nom ?? $m->produit->designation ?? '-',
-                    ucfirst($m->type),
+                    $m->type_label ?? ucfirst($m->type),
+                    $m->situation_depart_label ?? '-',
+                    $m->situation_arrivee_label ?? '-',
                     $m->quantite,
-                    $emplacementLabel,
                     $m->user->name ?? 'Système',
                     $m->motif ?? '-',
                 ];
@@ -255,21 +268,15 @@ class ReportController extends Controller
         // Export PDF
         if ($request->input('export') === 'pdf') {
             $items = $query->latest('date_mouvement')->get();
-            $headers = ['Date', 'Produit', 'Opération', 'Quantité', 'Emplacement concerné', 'Utilisateur', 'Motif'];
+            $headers = ['Date', 'Matériel', 'Opération', 'Situation départ', 'Situation arrivée', 'Quantité', 'Utilisateur', 'Motif'];
             $rows = $items->map(function ($m) {
-                $emplacementLabel = match ($m->type) {
-                    'entree' => $m->emplacementDestination->nom ?? 'Stock',
-                    'sortie' => $m->emplacementSource->nom ?? 'Stock',
-                    'transfert' => ($m->emplacementSource->nom ?? '?') . ' -> ' . ($m->emplacementDestination->nom ?? '?'),
-                    'correction' => $m->emplacementDestination->nom ?? ($m->emplacementSource->nom ?? 'Stock'),
-                    default => '-',
-                };
                 return [
                     $m->date_mouvement ? $m->date_mouvement->format('d/m/Y') : '-',
                     $m->produit->nom ?? $m->produit->designation ?? '-',
-                    ucfirst($m->type),
+                    $m->type_label ?? ucfirst($m->type),
+                    $m->situation_depart_label ?? '-',
+                    $m->situation_arrivee_label ?? '-',
                     $m->quantite . ' unité(s)',
-                    $emplacementLabel,
                     $m->user->name ?? 'Système',
                     $m->motif ?? '-',
                 ];
@@ -294,14 +301,25 @@ class ReportController extends Controller
 
             $totalMouvements = (clone $query)->count();
 
-            $sujet = 'Rapport des mouvements de stock informatique — ' . now()->format('d/m/Y');
+            $senderUser = auth()->user();
+            $senderNom = $senderUser?->name ?? 'Gestionnaire de stock';
+            $senderEmail = $senderUser?->email ?? config('mail.from.address', '');
+
+            $sujet = 'Rapport des mouvements de stock — ' . now()->format('d/m/Y');
             $corpsLignes = [
+                '==================================================',
+                'DE (Expéditeur)   : ' . $senderNom . ' <' . $senderEmail . '> (Gestionnaire de stock)',
+                'À  (Destinataire) : ' . $destinataireNom . ' <' . $destinataireEmail . '>',
+                'DATE              : ' . now()->format('d/m/Y à H:i'),
+                'OBJET             : ' . $sujet,
+                '==================================================',
+                '',
                 'Bonjour ' . $destinataireNom . ',',
                 '',
-                'Veuillez trouver ci-joint le journal des mouvements de stock informatique édité le ' . now()->format('d/m/Y à H:i') . '.',
+                'Veuillez trouver ci-joint le relevé complet des mouvements de stock édité le ' . now()->format('d/m/Y à H:i') . '.',
                 '',
-                'Synthèse des opérations filtrées :',
-                '- Nombre total d\'opérations enregistrées : ' . $totalMouvements,
+                'Synthèse des mouvements filtrés :',
+                '- Nombre de mouvements : ' . $totalMouvements,
             ];
 
             $filterSummary = $this->buildFilterSummary($request);
@@ -310,11 +328,11 @@ class ReportController extends Controller
             }
 
             $corpsLignes[] = '';
-            $corpsLignes[] = 'Le fichier PDF correspondant a été généré depuis IT Manager Pro. Pensez à l\'insérer en pièce jointe de ce courriel avant l\'envoi.';
+            $corpsLignes[] = 'Le fichier PDF correspondant a été généré depuis Stock Matériel. Pensez à l\'insérer en pièce jointe de ce courriel avant l\'envoi.';
             $corpsLignes[] = '';
             $corpsLignes[] = 'Cordialement,';
-            $corpsLignes[] = auth()->user()->name ?? 'Responsable IT';
-            $corpsLignes[] = 'Service informatique — IT Manager Pro';
+            $corpsLignes[] = auth()->user()->name ?? 'Gestionnaire de stock';
+            $corpsLignes[] = 'Service informatique — VAR du Lassureur';
 
             $corps = implode("\r\n", $corpsLignes);
             $gmailUrl = $this->gmailService->buildGmailUrl($destinataireEmail, $sujet, $corps);
@@ -327,34 +345,48 @@ class ReportController extends Controller
             ]);
         }
 
-        $mouvements = $query->latest('date_mouvement')->paginate(20)->withQueryString();
+        $mouvements = $query->latest('date_mouvement')->latest('id')->paginate(20)->withQueryString();
+        $typesMouvements = Mouvement::TYPES;
         $destinataireConfig = $this->gmailService->getDirecteurConfig();
 
-        return view('it.reports.mouvements', compact('mouvements', 'destinataireConfig'));
+        return view('it.reports.mouvements', compact('mouvements', 'typesMouvements', 'destinataireConfig'));
     }
 
     /**
-     * Helper to summarize active filters for exports and emails.
+     * Helper pour résumer les filtres dans le titre du PDF ou l'e-mail.
      */
     protected function buildFilterSummary(Request $request): string
     {
-        $active = [];
-        foreach ($request->except(['page', 'export', 'action']) as $k => $v) {
-            if (!empty($v)) {
-                $label = match ($k) {
-                    'search' => 'Recherche: "' . $v . '"',
-                    'category_id' => 'Catégorie ID: ' . $v,
-                    'emplacement_id' => 'Emplacement ID: ' . $v,
-                    'stock_alert' => 'Alerte: ' . ucfirst($v),
-                    'type' => 'Opération: ' . ucfirst($v),
-                    'date_debut' => 'Du: ' . $v,
-                    'date_fin' => 'Au: ' . $v,
-                    default => $k . ': ' . $v,
-                };
-                $active[] = $label;
+        $parts = [];
+        if ($search = $request->input('search')) {
+            $parts[] = "Recherche: \"{$search}\"";
+        }
+        if ($catId = $request->input('category_id')) {
+            $cat = Categorie::find($catId);
+            if ($cat) {
+                $parts[] = "Catégorie: {$cat->nom}";
             }
         }
+        if ($situation = $request->input('situation')) {
+            $parts[] = "Situation: " . (Stock::SITUATIONS[$situation] ?? $situation);
+        }
+        if ($alert = $request->input('stock_alert')) {
+            $parts[] = "Niveau: " . match ($alert) {
+                'rupture' => 'Épuisé',
+                'faible' => 'Stock faible',
+                default => 'Disponible',
+            };
+        }
+        if ($type = $request->input('type')) {
+            $parts[] = "Opération: " . (Mouvement::TYPES[$type] ?? ucfirst($type));
+        }
+        if ($debut = $request->input('date_debut')) {
+            $parts[] = "Du: {$debut}";
+        }
+        if ($fin = $request->input('date_fin')) {
+            $parts[] = "Au: {$fin}";
+        }
 
-        return empty($active) ? 'Aucun filtre (ensemble des données)' : implode(', ', $active);
+        return implode(', ', $parts);
     }
 }

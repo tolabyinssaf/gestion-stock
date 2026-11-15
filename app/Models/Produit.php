@@ -95,7 +95,7 @@ class Produit extends Model
     }
 
     /**
-     * Relationship: Stocks (quantities by location)
+     * Relationship: Stocks (quantities by location and situation)
      */
     public function stocks(): HasMany
     {
@@ -111,23 +111,78 @@ class Produit extends Model
     }
 
     /**
-     * Total quantity available across all locations (for quantity products)
+     * Quantity available in stock (réserve).
+     */
+    public function getQuantiteEnStockAttribute(): int
+    {
+        if ($this->relationLoaded('stocks')) {
+            return (int) $this->stocks->filter(function ($s) {
+                return $s->situation === Stock::SITUATION_EN_STOCK || empty($s->situation);
+            })->sum('quantite');
+        }
+
+        return (int) $this->stocks()->enStock()->sum('quantite');
+    }
+
+    /**
+     * Quantity currently in utilization (bureaux, production, services).
+     */
+    public function getQuantiteEnUtilisationAttribute(): int
+    {
+        if ($this->relationLoaded('stocks')) {
+            return (int) $this->stocks->where('situation', Stock::SITUATION_EN_UTILISATION)->sum('quantite');
+        }
+
+        return (int) $this->stocks()->enUtilisation()->sum('quantite');
+    }
+
+    /**
+     * Quantity currently broken (en panne / hors service).
+     */
+    public function getQuantiteEnPanneAttribute(): int
+    {
+        if ($this->relationLoaded('stocks')) {
+            return (int) $this->stocks->where('situation', Stock::SITUATION_EN_PANNE)->sum('quantite');
+        }
+
+        return (int) $this->stocks()->enPanne()->sum('quantite');
+    }
+
+    /**
+     * Total quantity across all situations: En stock + En utilisation + En panne.
      */
     public function getTotalStockAttribute(): int
     {
+        if ($this->relationLoaded('stocks')) {
+            return (int) $this->stocks->sum('quantite');
+        }
+
         return (int) $this->stocks()->sum('quantite');
     }
 
     /**
-     * Stock status: rupture (= 0), faible (= 1), normal (> 1)
+     * Alias for total quantity
+     */
+    public function getQuantiteTotaleAttribute(): int
+    {
+        return $this->total_stock;
+    }
+
+    /**
+     * Stock status based strictly on units 'En stock' vs 'seuil_minimum' (default 1).
+     * - 0 unit: Épuisé (rupture)
+     * - 0 < qty <= seuil: Stock faible (faible)
+     * - qty > seuil: Disponible (normal)
      */
     public function getStockStatusAttribute(): string
     {
-        $total = $this->total_stock;
-        if ($total === 0) {
+        $enStock = $this->quantite_en_stock;
+        $seuil = ($this->seuil_minimum !== null && $this->seuil_minimum > 0) ? (int) $this->seuil_minimum : 1;
+
+        if ($enStock <= 0) {
             return 'rupture';
         }
-        if ($total === 1) {
+        if ($enStock <= $seuil) {
             return 'faible';
         }
         return 'normal';
@@ -139,19 +194,39 @@ class Produit extends Model
     public function getStockStatusLabelAttribute(): string
     {
         return match ($this->stock_status) {
-            'rupture' => 'Rupture de stock',
+            'rupture' => 'Épuisé',
             'faible' => 'Stock faible',
             default => 'Disponible',
         };
     }
 
     /**
-     * Photo URL accessor
+     * Photo URL accessor – returns a route path guaranteed to work on Windows
+     * even without a valid public/storage symlink.
      */
     public function getPhotoUrlAttribute(): ?string
     {
-        if ($this->photo && Storage::disk('public')->exists($this->photo)) {
-            return Storage::disk('public')->url($this->photo);
+        if (!$this->photo) {
+            return null;
+        }
+
+        if (filter_var($this->photo, FILTER_VALIDATE_URL)) {
+            return $this->photo;
+        }
+
+        // Normalise: strip leading 'storage/' or '/' if present
+        $cleanPath = ltrim(str_replace(['\\', 'storage/'], ['/', ''], $this->photo), '/');
+
+        // Check the file actually exists on disk
+        $diskPath = storage_path('app/public/' . $cleanPath);
+        if (file_exists($diskPath)) {
+            // Use /media/ route which is handled 100 % by Laravel (no static-file interception)
+            return '/media/' . $cleanPath;
+        }
+
+        // Fallback: maybe already in public/storage via symlink
+        if (file_exists(public_path('storage/' . $cleanPath))) {
+            return '/media/' . $cleanPath;
         }
 
         return null;
@@ -183,8 +258,8 @@ class Produit extends Model
     public function getTypeSuiviLabelAttribute(): string
     {
         return match ($this->type_suivi) {
-            self::TYPE_INDIVIDUEL => 'Individuel (Sérialisé)',
-            self::TYPE_QUANTITE => 'Par quantité (Vrac)',
+            self::TYPE_INDIVIDUEL => 'Individuel',
+            self::TYPE_QUANTITE => 'Par quantité',
             default => ucfirst($this->type_suivi),
         };
     }
@@ -232,6 +307,24 @@ class Produit extends Model
               ->orWhere('reference', 'like', "%{$terme}%")
               ->orWhere('marque', 'like', "%{$terme}%")
               ->orWhere('modele', 'like', "%{$terme}%");
+        });
+    }
+
+    public function scopeEnSituation(Builder $query, ?string $situation): Builder
+    {
+        if (!$situation || $situation === 'tous') {
+            return $query;
+        }
+
+        return $query->whereHas('stocks', function (Builder $q) use ($situation) {
+            if ($situation === Stock::SITUATION_EN_STOCK) {
+                $q->where(function ($sub) {
+                    $sub->where('situation', Stock::SITUATION_EN_STOCK)
+                        ->orWhereNull('situation');
+                })->where('quantite', '>', 0);
+            } else {
+                $q->where('situation', $situation)->where('quantite', '>', 0);
+            }
         });
     }
 }

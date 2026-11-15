@@ -10,7 +10,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ $title ? $title . ' — IT Manager Pro' : 'IT Manager Pro' }}</title>
+    <title>{{ $title ? $title . ' — Stock Informatique' : 'Stock Informatique' }}</title>
 
     <!-- Google / Bunny Font : Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -72,7 +72,7 @@
             <!-- Footer -->
             <footer class="py-4 px-6 border-t border-border/80 bg-white text-center text-xs text-content-secondary">
                 <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-                    <p>&copy; {{ date('Y') }} IT Manager Pro &mdash; Gestion professionnelle du parc informatique.</p>
+                    <p>&copy; {{ date('Y') }} Stock Informatique &mdash; Gestion du stock de matériel.</p>
                     <div class="flex items-center gap-3 text-[11px]">
                         <span class="inline-flex items-center gap-1.5 text-emerald-600 font-medium">
                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>

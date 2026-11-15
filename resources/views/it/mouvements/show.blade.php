@@ -51,7 +51,7 @@
                         @elseif ($mouvement->type === 'transfert')
                             <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
                                 <x-ui.icon name="arrow-right-left" class="w-4 h-4" />
-                                Transfert inter-emplacements
+                                Changement de situation
                             </span>
                         @elseif ($mouvement->type === 'correction')
                             <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-accent/10 text-accent border border-accent/20">
@@ -111,11 +111,19 @@
                         </div>
 
                         <div class="mt-4 pt-4 border-t border-border">
-                            <span class="text-[11px] font-bold text-content-secondary uppercase tracking-wider block mb-1">Trajet d'emplacement</span>
+                            <span class="text-[11px] font-bold text-content-secondary uppercase tracking-wider block mb-1">Situation</span>
                             <div class="text-xs text-content flex items-center gap-2">
-                                <span class="font-semibold">{{ $mouvement->emplacementSource->nom ?? 'Extérieur / Stock initial' }}</span>
-                                <x-ui.icon name="arrow-right" class="w-3.5 h-3.5 text-content-secondary" />
-                                <span class="font-semibold">{{ $mouvement->emplacementDestination->nom ?? 'Consommé / Sorti' }}</span>
+                                @if ($mouvement->situation_depart_label && $mouvement->situation_arrivee_label)
+                                    <span class="font-semibold">{{ $mouvement->situation_depart_label }}</span>
+                                    <x-ui.icon name="arrow-right" class="w-3.5 h-3.5 text-content-secondary" />
+                                    <span class="font-semibold">{{ $mouvement->situation_arrivee_label }}</span>
+                                @elseif ($mouvement->situation_arrivee_label)
+                                    <span class="font-semibold text-emerald-700">{{ $mouvement->situation_arrivee_label }}</span>
+                                @elseif ($mouvement->situation_depart_label)
+                                    <span class="font-semibold text-rose-700">{{ $mouvement->situation_depart_label }}</span>
+                                @else
+                                    <span class="font-semibold">Stock</span>
+                                @endif
                             </div>
                         </div>
                     </div>

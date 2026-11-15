@@ -6,11 +6,14 @@
 @php
 $user = Auth::user();
 $userName = $user ? $user->name : 'Utilisateur';
+if ($userName === 'Responsable IT') {
+    $userName = 'Gestionnaire de stock';
+}
 $userEmail = $user ? $user->email : '';
 $userRole = $user ? $user->role_label : '';
 $isAdmin = $user && $user->isAdmin();
 
-// Generate initials (e.g., "AD" for Administrateur or "RI" for Responsable IT)
+// Generate initials (e.g., "AD" for Administrateur or "GS" for Gestionnaire de stock)
 $words = preg_split('/\s+/', trim($userName));
 $initials = '';
 foreach (array_slice($words, 0, 2) as $w) {
@@ -19,83 +22,30 @@ foreach (array_slice($words, 0, 2) as $w) {
     }
 }
 if (empty($initials)) {
-    $initials = 'IT';
+    $initials = 'GS';
 }
 @endphp
 
 <header class="h-16 bg-white/95 backdrop-blur-md border-b border-border sticky top-0 z-30 flex items-center justify-between px-4 sm:px-6 lg:px-8 transition-all duration-200 shadow-xs">
-    <!-- LEFT: Sidebar Toggle + Title + Breadcrumbs -->
+    <!-- LEFT: Sidebar Toggle (Trois tirets / Hamburger) -->
     <div class="flex items-center gap-3 sm:gap-4 min-w-0">
-        <!-- Mobile Sidebar Toggle -->
         <button
             type="button"
-            @click="mobileSidebarOpen = !mobileSidebarOpen"
-            class="lg:hidden p-2 rounded-lg text-content-secondary hover:text-content hover:bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors"
-            aria-label="Ouvrir le menu latéral"
+            @click="window.innerWidth < 1024 ? mobileSidebarOpen = !mobileSidebarOpen : toggleSidebar()"
+            class="p-2 rounded-xl text-content-secondary hover:text-content hover:bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-150 cursor-pointer"
+            title="Ouvrir / Fermer le menu"
+            aria-label="Ouvrir / Fermer le menu latéral"
         >
-            <x-ui.icon name="menu" class="w-5 h-5" />
-        </button>
-
-        <!-- Desktop Sidebar Collapse Toggle -->
-        <button
-            type="button"
-            @click="sidebarCollapsed = !sidebarCollapsed"
-            class="hidden lg:flex p-2 rounded-lg text-content-secondary hover:text-content hover:bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors"
-            :title="sidebarCollapsed ? 'Agrandir la barre latérale' : 'Réduire la barre latérale'"
-            aria-label="Basculer la barre latérale"
-        >
-            <svg
-                class="w-5 h-5 transition-transform duration-200"
-                :class="sidebarCollapsed ? 'rotate-180' : ''"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-            >
-                <rect width="18" height="18" x="3" y="3" rx="2" />
-                <path d="M9 3v18" />
-                <path d="m14 15-3-3 3-3" />
+            <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="4" x2="20" y1="6" y2="6"/>
+                <line x1="4" x2="20" y1="12" y2="12"/>
+                <line x1="4" x2="20" y1="18" y2="18"/>
             </svg>
         </button>
-
-        <!-- Page Title & Breadcrumbs -->
-        <div class="flex flex-col min-w-0">
-            <h1 class="text-base sm:text-lg font-bold text-content tracking-tight truncate">
-                {{ $title }}
-            </h1>
-
-            @if (!empty($breadcrumbs))
-                <div class="hidden sm:block -mt-0.5">
-                    <x-breadcrumb :items="$breadcrumbs" />
-                </div>
-            @endif
-        </div>
     </div>
 
-    <!-- RIGHT: Search Slot + User Menu -->
+    <!-- RIGHT: User Menu -->
     <div class="flex items-center gap-3 sm:gap-4">
-        <!-- Search bar placeholder (distinctly marked as planned) -->
-        <div class="hidden md:flex items-center">
-            <div class="relative group">
-                <button
-                    type="button"
-                    @click="$dispatch('open-unavailable', { title: 'Recherche globale' })"
-                    class="flex items-center gap-2 pl-3 pr-2.5 py-1.5 bg-surface hover:bg-slate-100 border border-border/80 rounded-lg text-xs text-content-secondary transition-colors"
-                    title="Recherche globale (bientôt disponible)"
-                >
-                    <x-ui.icon name="search" class="w-4 h-4 text-content-secondary/70" />
-                    <span>Rechercher...</span>
-                    <kbd class="ml-2 px-1.5 py-0.5 text-[10px] bg-white border border-border rounded font-mono text-content-secondary/70">Ctrl K</kbd>
-                </button>
-            </div>
-        </div>
-
-        <!-- Vertical Separator -->
-        <div class="hidden sm:block h-6 w-px bg-border"></div>
-
         <!-- User Profile Dropdown -->
         <div class="relative" x-data="{ open: false }" @click.outside="open = false" @keydown.escape.window="open = false">
             <button

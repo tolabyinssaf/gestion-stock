@@ -18,8 +18,13 @@ class CorrectionStockRequest extends FormRequest
                 'required',
                 'exists:produits,id',
             ],
+            'situation' => [
+                'nullable',
+                'string',
+                'in:en_stock,en_utilisation,en_panne',
+            ],
             'emplacement_id' => [
-                'required',
+                'nullable',
                 'exists:emplacements,id',
             ],
             'nouvelle_quantite' => [

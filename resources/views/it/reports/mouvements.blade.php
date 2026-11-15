@@ -53,14 +53,14 @@
 
         <!-- Filters Form (Consulter avec filtres adaptés) -->
         <div class="bg-white rounded-2xl border border-border p-5 mb-8 shadow-xs">
-            <form method="GET" action="{{ route('it.reports.mouvements') }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+            <form method="GET" action="{{ route('it.reports.mouvements') }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3.5">
                 <!-- Search -->
                 <div class="relative">
                     <input
                         type="text"
                         name="search"
                         value="{{ request('search') }}"
-                        placeholder="Rechercher produit, réf, motif..."
+                        placeholder="Recherche matériel, réf, motif..."
                         class="w-full px-3.5 py-2.5 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
                     >
                 </div>
@@ -70,20 +70,40 @@
                     <select name="type" class="w-full px-3 py-2.5 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20">
                         <option value="">Tous types d'opération</option>
                         <option value="entree" {{ request('type') === 'entree' ? 'selected' : '' }}>Entrée</option>
-                        <option value="sortie" {{ request('type') === 'sortie' ? 'selected' : '' }}>Sortie</option>
+                        <option value="sortie_definitive" {{ request('type') === 'sortie_definitive' || request('type') === 'sortie' ? 'selected' : '' }}>Sortie définitive</option>
+                        <option value="mise_utilisation" {{ request('type') === 'mise_utilisation' ? 'selected' : '' }}>Mise en utilisation</option>
+                        <option value="retour_stock" {{ request('type') === 'retour_stock' ? 'selected' : '' }}>Retour en stock</option>
+                        <option value="declaration_panne" {{ request('type') === 'declaration_panne' ? 'selected' : '' }}>Déclaration de panne</option>
+                        <option value="remise_service" {{ request('type') === 'remise_service' ? 'selected' : '' }}>Remise en service</option>
                         <option value="transfert" {{ request('type') === 'transfert' ? 'selected' : '' }}>Transfert</option>
                         <option value="correction" {{ request('type') === 'correction' ? 'selected' : '' }}>Correction</option>
                     </select>
                 </div>
 
-                <!-- Date début -->
+                <!-- Situation départ -->
                 <div>
-                    <input type="date" name="date_debut" value="{{ request('date_debut') }}" class="w-full px-3.5 py-2.5 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20" title="Date de début">
+                    <select name="situation_depart" class="w-full px-3 py-2.5 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20">
+                        <option value="">Situation départ (toutes)</option>
+                        <option value="en_stock" {{ request('situation_depart') === 'en_stock' ? 'selected' : '' }}>En stock</option>
+                        <option value="en_utilisation" {{ request('situation_depart') === 'en_utilisation' ? 'selected' : '' }}>En utilisation</option>
+                        <option value="en_panne" {{ request('situation_depart') === 'en_panne' ? 'selected' : '' }}>En panne</option>
+                    </select>
                 </div>
 
-                <!-- Date fin -->
+                <!-- Situation arrivée -->
                 <div>
-                    <input type="date" name="date_fin" value="{{ request('date_fin') }}" class="w-full px-3.5 py-2.5 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20" title="Date de fin">
+                    <select name="situation_arrivee" class="w-full px-3 py-2.5 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20">
+                        <option value="">Situation arrivée (toutes)</option>
+                        <option value="en_stock" {{ request('situation_arrivee') === 'en_stock' ? 'selected' : '' }}>En stock</option>
+                        <option value="en_utilisation" {{ request('situation_arrivee') === 'en_utilisation' ? 'selected' : '' }}>En utilisation</option>
+                        <option value="en_panne" {{ request('situation_arrivee') === 'en_panne' ? 'selected' : '' }}>En panne</option>
+                    </select>
+                </div>
+
+                <!-- Date début & fin -->
+                <div class="flex items-center gap-1.5">
+                    <input type="date" name="date_debut" value="{{ request('date_debut') }}" class="w-1/2 px-2 py-2.5 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20" title="Date début">
+                    <input type="date" name="date_fin" value="{{ request('date_fin') }}" class="w-1/2 px-2 py-2.5 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20" title="Date fin">
                 </div>
 
                 <!-- Submit & Reset -->
@@ -91,7 +111,7 @@
                     <button type="submit" class="w-full px-4 py-2.5 bg-primary text-white rounded-xl text-xs font-semibold hover:bg-primary-light transition-colors">
                         Filtrer
                     </button>
-                    @if (request()->hasAny(['search', 'type', 'date_debut', 'date_fin']))
+                    @if (request()->hasAny(['search', 'type', 'situation_depart', 'situation_arrivee', 'date_debut', 'date_fin']))
                         <a href="{{ route('it.reports.mouvements') }}" class="p-2.5 border border-border hover:bg-surface text-content-secondary rounded-xl transition-colors" title="Réinitialiser">
                             <x-ui.icon name="x" class="w-4 h-4" />
                         </a>
@@ -102,22 +122,13 @@
 
         <!-- Table -->
         <x-ui.table
-            :headers="['Date', 'Produit', 'Type d\'opération', 'Quantité', 'Emplacement concerné', 'Utilisateur', 'Motif']"
+            :headers="['Date', 'Matériel', 'Opération', 'Situation départ → arrivée', 'Quantité', 'Utilisateur', 'Motif']"
             :isEmpty="$mouvements->isEmpty()"
             emptyIcon="history"
             emptyTitle="Aucun mouvement trouvé"
             emptyDescription="Aucun mouvement de stock ne correspond aux filtres sélectionnés."
         >
             @foreach ($mouvements as $m)
-                @php
-                    $empLabel = match ($m->type) {
-                        'entree' => $m->emplacementDestination->nom ?? 'Stock',
-                        'sortie' => $m->emplacementSource->nom ?? 'Stock',
-                        'transfert' => ($m->emplacementSource->nom ?? '?') . ' → ' . ($m->emplacementDestination->nom ?? '?'),
-                        'correction' => $m->emplacementDestination->nom ?? ($m->emplacementSource->nom ?? 'Stock'),
-                        default => '-',
-                    };
-                @endphp
                 <tr class="hover:bg-surface/50 transition-colors">
                     <!-- Date -->
                     <td class="px-5 py-3 whitespace-nowrap text-xs text-content-secondary">
@@ -133,26 +144,21 @@
 
                     <!-- Type d'opération -->
                     <td class="px-5 py-3 whitespace-nowrap text-xs">
-                        @if ($m->type === 'entree')
-                            <span class="inline-flex items-center gap-1 font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full text-[11px] border border-emerald-200">
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                Entrée
-                            </span>
-                        @elseif ($m->type === 'sortie')
-                            <span class="inline-flex items-center gap-1 font-semibold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full text-[11px] border border-rose-200">
-                                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                                Sortie
-                            </span>
-                        @elseif ($m->type === 'transfert')
-                            <span class="inline-flex items-center gap-1 font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full text-[11px] border border-blue-200">
-                                <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                                Transfert
-                            </span>
+                        <span class="inline-flex items-center gap-1 font-semibold text-content bg-surface px-2 py-0.5 rounded-full text-[11px] border border-border">
+                            {{ $m->type_label ?? ucfirst($m->type) }}
+                        </span>
+                    </td>
+
+                    <!-- Situation départ -> arrivée -->
+                    <td class="px-5 py-3 whitespace-nowrap text-xs">
+                        @if ($m->situation_depart || $m->situation_arrivee)
+                            <div class="flex items-center gap-1">
+                                <span class="font-medium text-content">{{ $m->situation_depart_label ?? '—' }}</span>
+                                <span class="text-content-secondary">&rarr;</span>
+                                <span class="font-bold text-primary">{{ $m->situation_arrivee_label ?? '—' }}</span>
+                            </div>
                         @else
-                            <span class="inline-flex items-center gap-1 font-semibold text-accent bg-amber-50 px-2 py-0.5 rounded-full text-[11px] border border-amber-200">
-                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                                Correction
-                            </span>
+                            <span class="text-content-secondary">—</span>
                         @endif
                     </td>
 
@@ -160,7 +166,7 @@
                     <td class="px-5 py-3 whitespace-nowrap text-xs font-bold text-content">
                         @if ($m->type === 'entree')
                             <span class="text-emerald-700">+{{ $m->quantite }}</span>
-                        @elseif ($m->type === 'sortie')
+                        @elseif ($m->type === 'sortie' || $m->type === 'sortie_definitive')
                             <span class="text-rose-700">-{{ $m->quantite }}</span>
                         @else
                             <span>{{ $m->quantite }}</span>
@@ -168,15 +174,17 @@
                         <span class="text-[11px] font-normal text-content-secondary">unité(s)</span>
                     </td>
 
-                    <!-- Emplacement concerné -->
-                    <td class="px-5 py-3 text-xs text-content-secondary">
-                        <span class="font-medium text-content">{{ $empLabel }}</span>
-                    </td>
-
                     <!-- Utilisateur -->
                     <td class="px-5 py-3 whitespace-nowrap text-xs text-content">
                         {{ $m->user->name ?? 'Système' }}
                     </td>
+
+                    <!-- Motif -->
+                    <td class="px-5 py-3 text-xs text-content-secondary">
+                        {{ $m->motif ?? '-' }}
+                    </td>
+                </tr>
+            @endforeach
 
                     <!-- Motif -->
                     <td class="px-5 py-3 text-xs text-content max-w-xs truncate" title="{{ $m->motif }}">

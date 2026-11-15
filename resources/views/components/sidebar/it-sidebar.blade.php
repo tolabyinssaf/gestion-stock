@@ -1,7 +1,7 @@
 @props([])
 
 <aside
-    class="fixed inset-y-0 left-0 z-40 bg-white border-r border-border flex flex-col transition-all duration-300 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:flex-shrink-0"
+    class="fixed inset-y-0 left-0 z-40 bg-white border-r border-border flex flex-col transition-all duration-300 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:flex-shrink-0 w-64"
     :class="{
         'w-64': !sidebarCollapsed,
         'w-20': sidebarCollapsed,
@@ -10,24 +10,24 @@
     }"
 >
     <!-- Brand Header -->
-    <div class="h-16 flex items-center px-4 border-b border-border/80 flex-shrink-0" :class="sidebarCollapsed ? 'justify-center' : 'justify-between'">
-        <a href="{{ route('it.dashboard') }}" class="flex items-center gap-3 overflow-hidden">
-            <div class="w-10 h-10 rounded-xl bg-accent flex items-center justify-center flex-shrink-0 text-white shadow-xs">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/>
-                </svg>
-            </div>
-            <div class="flex flex-col min-w-0 transition-opacity duration-200" x-show="!sidebarCollapsed">
-                <span class="text-sm font-bold text-content tracking-tight truncate">Stock Matériel</span>
-                <span class="text-[11px] font-semibold text-accent uppercase tracking-wider">Gestionnaire de stock</span>
-            </div>
+    <div class="h-16 relative flex items-center justify-center px-4 border-b border-border/80 flex-shrink-0 overflow-hidden">
+        <a href="{{ route('it.dashboard') }}" class="flex items-center justify-center w-full h-full overflow-hidden">
+            <img
+                src="/images/logo.png"
+                alt="VAR du Lassureur"
+                width="160"
+                height="40"
+                class="sidebar-brand-logo object-contain transition-all duration-150 mx-auto"
+                :class="sidebarCollapsed ? '!h-7 !max-w-[48px]' : 'h-10 max-w-[160px]'"
+                style="max-height: 40px; max-width: 160px;"
+            />
         </a>
 
         <!-- Close button on mobile -->
         <button
             type="button"
             @click="mobileSidebarOpen = false"
-            class="lg:hidden p-1.5 rounded-lg text-content-secondary hover:text-content hover:bg-surface"
+            class="lg:hidden absolute right-3 p-1.5 rounded-lg text-content-secondary hover:text-content hover:bg-surface"
         >
             <x-ui.icon name="x" class="w-5 h-5" />
         </button>
@@ -77,13 +77,13 @@
             <div class="space-y-1">
                 <a
                     href="{{ route('it.stocks.index') }}"
-                    class="group flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all duration-150 relative {{ request()->routeIs('it.stocks.*') || request()->routeIs('it.emplacements.*') ? 'bg-accent/10 text-accent font-semibold' : 'text-content hover:bg-surface hover:text-accent' }}"
+                    class="group flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all duration-150 relative {{ request()->routeIs('it.stocks.*') ? 'bg-accent/10 text-accent font-semibold' : 'text-content hover:bg-surface hover:text-accent' }}"
                     :class="sidebarCollapsed ? 'justify-center' : ''"
                     :title="sidebarCollapsed ? 'Gestion du stock' : ''"
                 >
-                    <x-ui.icon name="boxes" class="w-5 h-5 flex-shrink-0 {{ request()->routeIs('it.stocks.*') || request()->routeIs('it.emplacements.*') ? 'text-accent' : 'text-content-secondary group-hover:text-accent' }}" />
+                    <x-ui.icon name="boxes" class="w-5 h-5 flex-shrink-0 {{ request()->routeIs('it.stocks.*') ? 'text-accent' : 'text-content-secondary group-hover:text-accent' }}" />
                     <span x-show="!sidebarCollapsed" class="truncate flex-1">Gestion du stock</span>
-                    @if (request()->routeIs('it.stocks.*') || request()->routeIs('it.emplacements.*'))
+                    @if (request()->routeIs('it.stocks.*'))
                         <span class="absolute left-0 top-1.5 bottom-1.5 w-1 bg-accent rounded-r-full" x-show="!sidebarCollapsed"></span>
                     @endif
                 </a>

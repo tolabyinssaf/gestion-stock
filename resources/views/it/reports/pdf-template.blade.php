@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="utf-8">
-    <title>{{ $title }} — IT Manager Pro</title>
+    <title>{{ $title }} — Stock Matériel</title>
     <style>
         @page {
             size: {{ $orientation === 'landscape' ? 'A4 landscape' : 'A4 portrait' }};
@@ -139,7 +139,7 @@
     <!-- Document Header -->
     <div class="header">
         <div>
-            <div class="app-name">IT MANAGER PRO</div>
+            <div class="app-name">STOCK INFORMATIQUE</div>
             <div class="app-sub">Gestion du stock de matériel informatique</div>
             <div class="doc-title">{{ $title }}</div>
         </div>
@@ -183,7 +183,7 @@
 
     <!-- Footer -->
     <div class="footer">
-        <div>IT Manager Pro &bull; Gestion du stock informatique</div>
+        <div>Stock Informatique &bull; Gestion du stock</div>
         <div>Page générée automatiquement &bull; Données certifiées</div>
     </div>
 

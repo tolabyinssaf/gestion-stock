@@ -41,7 +41,8 @@ class MouvementController extends Controller
         $type = $request->string('type')->trim()->value();
         $produitId = $request->input('produit_id');
         $equipementId = $request->input('equipement_id');
-        $emplacementId = $request->input('emplacement_id');
+        $situationDepart = $request->string('situation_depart')->trim()->value();
+        $situationArrivee = $request->string('situation_arrivee')->trim()->value();
         $dateDebut = $request->input('date_debut');
         $dateFin = $request->input('date_fin');
 
@@ -55,18 +56,16 @@ class MouvementController extends Controller
         // Datasets for filters
         $produits = Produit::orderBy('nom')->get();
         $equipements = Equipement::orderBy('code_inventaire')->get();
-        $emplacements = Emplacement::orderBy('nom')->get();
 
         // Query
         $mouvements = Mouvement::query()
-            ->with(['produit.categorie', 'equipement', 'emplacementSource', 'emplacementDestination', 'user'])
+            ->with(['produit.categorie', 'equipement', 'user'])
             ->when($search, fn ($q) => $q->recherche($search))
-            ->when($type, fn ($q) => $q->type($type))
+            ->when($type && $type !== 'tous', fn ($q) => $q->type($type))
             ->when($produitId, fn ($q) => $q->produit($produitId))
             ->when($equipementId, fn ($q) => $q->equipement($equipementId))
-            ->when($emplacementId, function ($q) use ($emplacementId) {
-                $q->where(fn ($sub) => $sub->where('emplacement_source_id', $emplacementId)->orWhere('emplacement_destination_id', $emplacementId));
-            })
+            ->when($situationDepart && $situationDepart !== 'tous', fn ($q) => $q->situationDepart($situationDepart))
+            ->when($situationArrivee && $situationArrivee !== 'tous', fn ($q) => $q->situationArrivee($situationArrivee))
             ->when($dateDebut, fn ($q) => $q->whereDate('date_mouvement', '>=', $dateDebut))
             ->when($dateFin, fn ($q) => $q->whereDate('date_mouvement', '<=', $dateFin))
             ->orderBy('date_mouvement', 'desc')
@@ -83,12 +82,12 @@ class MouvementController extends Controller
             'correctionsCount',
             'produits',
             'equipements',
-            'emplacements',
             'search',
             'type',
             'produitId',
             'equipementId',
-            'emplacementId',
+            'situationDepart',
+            'situationArrivee',
             'dateDebut',
             'dateFin'
         ));

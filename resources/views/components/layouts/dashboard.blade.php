@@ -11,7 +11,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     @php
-        $appName = \App\Models\AppSetting::get('nom_application', 'IT Manager Pro');
+        $appName = \App\Models\AppSetting::get('nom_application', 'Stock Matériel');
     @endphp
     <title>{{ $title ? $title . ' — ' . $appName : $appName }}</title>
 
@@ -21,6 +21,18 @@
 
     <!-- Scripts & Styles via Vite -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    <style>
+        [x-cloak] { display: none !important; }
+        .sidebar-brand-logo {
+            max-height: 40px !important;
+            max-width: 160px !important;
+            height: 40px;
+            width: auto;
+            object-fit: contain;
+            display: block;
+        }
+    </style>
 </head>
 <body
     class="min-h-screen font-sans antialiased bg-surface text-content"
@@ -75,7 +87,7 @@
             <!-- Footer -->
             <footer class="py-4 px-6 border-t border-border/80 bg-white text-center text-xs text-content-secondary">
                 <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-                    <p>&copy; {{ date('Y') }} {{ $appName }} &mdash; Gestion professionnelle du parc informatique.</p>
+                    <p>&copy; {{ date('Y') }} {{ $appName }} &mdash; Gestion du stock de matériel informatique.</p>
                     <div class="flex items-center gap-3 text-[11px]">
                         <span class="inline-flex items-center gap-1.5 text-emerald-600 font-medium">
                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -127,7 +139,7 @@
                         <x-ui.badge variant="soon" size="sm">Étape suivante du projet</x-ui.badge>
                     </span>
                     <p class="text-xs text-content-secondary mt-2.5 leading-relaxed">
-                        Ce module fait partie de l'architecture générale d'IT Manager Pro et sera développé lors des prochaines étapes selon la feuille de route.
+                        Ce module fait partie de l'architecture générale de Stock Matériel et sera développé lors des prochaines étapes selon la feuille de route.
                     </p>
                 </div>
             </div>

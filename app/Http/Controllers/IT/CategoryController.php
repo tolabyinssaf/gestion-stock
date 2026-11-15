@@ -74,7 +74,7 @@ class CategoryController extends Controller
 
         return redirect()
             ->route('it.categories.index')
-            ->with('success', "La catégorie « {$request->nom} » a été créée avec succès.");
+            ->with('success', "Catégorie ajoutée avec succès.");
     }
 
     /**
@@ -91,7 +91,7 @@ class CategoryController extends Controller
 
         return redirect()
             ->route('it.categories.index')
-            ->with('success', "La catégorie « {$category->nom} » a été mise à jour avec succès.");
+            ->with('success', "Catégorie mise à jour avec succès.");
     }
 
     /**

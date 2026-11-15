@@ -33,7 +33,7 @@ class ProductController extends Controller
     }
 
     /**
-     * Display a listing of products.
+     * Display a listing of products with situation breakdowns.
      */
     public function index(Request $request): View
     {
@@ -41,30 +41,29 @@ class ProductController extends Controller
 
         $search = $request->string('search')->trim()->value();
         $categoryId = $request->input('category_id');
+        $situation = $request->string('situation')->trim()->value(); // en_stock, en_utilisation, en_panne
         $etatStock = $request->string('etat_stock')->trim()->value(); // disponible, faible, rupture
 
-        // 1. Calcul des 4 cartes statistiques (identiques au Dashboard)
+        // 1. Calcul des 4 cartes statistiques par situation
         $totalProducts = Produit::where('statut', Produit::STATUT_ACTIF)->count();
-        $totalUnitesStock = (int) Stock::whereHas('produit', fn ($q) => $q->where('statut', Produit::STATUT_ACTIF))->sum('quantite');
 
-        // Calcul des produits actifs en stock faible (exactement 1) et rupture (exactement 0)
-        $allActiveProducts = Produit::with('stocks')
+        $allActiveProds = Produit::with('stocks')
             ->where('statut', Produit::STATUT_ACTIF)
             ->get();
 
-        $stockFaibleCount = 0;
-        $produitsEpuisesCount = 0;
+        $totalEnStock = 0;
+        $totalEnUtilisation = 0;
+        $totalEnPanne = 0;
 
-        foreach ($allActiveProducts as $prod) {
-            $qte = (int) $prod->stocks->sum('quantite');
-            if ($qte === 0) {
-                $produitsEpuisesCount++;
-            } elseif ($qte === 1) {
-                $stockFaibleCount++;
-            }
+        foreach ($allActiveProds as $prod) {
+            $totalEnStock += $prod->quantite_en_stock;
+            $totalEnUtilisation += $prod->quantite_en_utilisation;
+            $totalEnPanne += $prod->quantite_en_panne;
         }
 
-        // 2. Liste déroulante des catégories depuis la base de données
+        $totalUnitesStock = $totalEnStock + $totalEnUtilisation + $totalEnPanne;
+
+        // 2. Catégories actives
         $categories = Categorie::where('statut', Categorie::STATUT_ACTIF)
             ->orderBy('nom', 'asc')
             ->get();
@@ -74,7 +73,7 @@ class ProductController extends Controller
             ->with(['categorie', 'stocks'])
             ->where('statut', Produit::STATUT_ACTIF);
 
-        // Filtre Recherche : Nom, Marque, Référence
+        // Filtre Recherche
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('nom', 'like', "%{$search}%")
@@ -89,21 +88,19 @@ class ProductController extends Controller
             $query->where('categorie_id', $categoryId);
         }
 
-        // Filtre État du stock (disponible > 1, faible == 1, rupture == 0)
+        // Filtre Situation (Un produit apparaît si au moins 1 unité possède cette situation)
+        if ($situation && $situation !== 'tous') {
+            $query->enSituation($situation);
+        }
+
+        // Filtre Niveau de stock (selon unités En stock vs seuil_minimum)
         if ($etatStock === 'rupture') {
-            $query->whereDoesntHave('stocks', fn ($s) => $s->where('quantite', '>', 0));
+            $query->whereRaw('(SELECT COALESCE(SUM(quantite), 0) FROM stocks WHERE stocks.produit_id = produits.id AND (stocks.situation = "en_stock" OR stocks.situation IS NULL)) = 0');
         } elseif ($etatStock === 'faible') {
-            $query->whereHas('stocks', function ($s) {
-                $s->selectRaw('produit_id, sum(quantite) as total_qty')
-                  ->groupBy('produit_id')
-                  ->havingRaw('sum(quantite) = 1');
-            });
+            $query->whereRaw('(SELECT COALESCE(SUM(quantite), 0) FROM stocks WHERE stocks.produit_id = produits.id AND (stocks.situation = "en_stock" OR stocks.situation IS NULL)) > 0')
+                  ->whereRaw('(SELECT COALESCE(SUM(quantite), 0) FROM stocks WHERE stocks.produit_id = produits.id AND (stocks.situation = "en_stock" OR stocks.situation IS NULL)) <= COALESCE(NULLIF(produits.seuil_minimum, 0), 1)');
         } elseif ($etatStock === 'disponible') {
-            $query->whereHas('stocks', function ($s) {
-                $s->selectRaw('produit_id, sum(quantite) as total_qty')
-                  ->groupBy('produit_id')
-                  ->havingRaw('sum(quantite) > 1');
-            });
+            $query->whereRaw('(SELECT COALESCE(SUM(quantite), 0) FROM stocks WHERE stocks.produit_id = produits.id AND (stocks.situation = "en_stock" OR stocks.situation IS NULL)) > COALESCE(NULLIF(produits.seuil_minimum, 0), 1)');
         }
 
         $products = $query->orderBy('nom', 'asc')
@@ -114,11 +111,13 @@ class ProductController extends Controller
             'products',
             'categories',
             'totalProducts',
+            'totalEnStock',
+            'totalEnUtilisation',
+            'totalEnPanne',
             'totalUnitesStock',
-            'stockFaibleCount',
-            'produitsEpuisesCount',
             'search',
             'categoryId',
+            'situation',
             'etatStock'
         ));
     }
@@ -134,11 +133,7 @@ class ProductController extends Controller
             ->orderBy('nom', 'asc')
             ->get();
 
-        $emplacements = \App\Models\Emplacement::where('statut', \App\Models\Emplacement::STATUT_ACTIF)
-            ->orderBy('nom', 'asc')
-            ->get();
-
-        return view('it.products.create', compact('categories', 'emplacements'));
+        return view('it.products.create', compact('categories'));
     }
 
     /**
@@ -148,53 +143,64 @@ class ProductController extends Controller
     {
         $validated = $request->validated();
 
-        // Valeurs par défaut simplifiées
         $validated['type_suivi'] = $validated['type_suivi'] ?? Produit::TYPE_QUANTITE;
         $validated['statut'] = $validated['statut'] ?? Produit::STATUT_ACTIF;
 
-        // Générer une référence SKU automatique si non renseignée
+        // Prevent NULL on NOT NULL columns — fallback to empty string
+        $validated['marque'] = $validated['marque'] ?? '';
+        $validated['modele'] = $validated['modele'] ?? '';
+
         if (empty($validated['reference'])) {
             $validated['reference'] = 'REF-' . strtoupper(uniqid());
         }
 
-        // Handle photo upload if present
         if ($request->hasFile('photo')) {
-            $validated['photo'] = $request->file('photo')->store('products', 'public');
+            $path = $request->file('photo')->store('products', 'public');
+            $validated['photo'] = $path;
+
+            // Mirror to public/storage/products for maximum web server compatibility
+            try {
+                $publicTarget = public_path('storage/' . $path);
+                if (!is_dir(dirname($publicTarget))) {
+                    @mkdir(dirname($publicTarget), 0777, true);
+                }
+                @copy(storage_path('app/public/' . $path), $publicTarget);
+            } catch (\Throwable $e) {}
         }
 
         $quantiteInitiale = (int) ($request->input('quantite_initiale', 0));
         $emplacementId = $request->input('emplacement_id');
 
-        // Récupérer un emplacement par défaut si non renseigné
         if (!$emplacementId) {
             $emplacementId = \App\Models\Emplacement::where('statut', \App\Models\Emplacement::STATUT_ACTIF)->value('id')
                 ?? \App\Models\Emplacement::firstOrCreate(
-                    ['nom' => 'Magasin Principal'],
-                    ['code' => 'MAG-01', 'statut' => 'actif', 'description' => 'Emplacement principal par défaut']
+                    ['nom' => 'Réserve IT'],
+                    ['code' => 'LOC-RES-IT', 'statut' => 'actif', 'description' => 'Local technique sécurisé']
                 )->id;
         }
 
         $produit = \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $quantiteInitiale, $emplacementId) {
             $produit = Produit::create($validated);
 
-            // Créer la ligne de stock pour ce produit et emplacement
+            // Créer la ligne de stock pour ce produit en situation 'en_stock'
             $stock = Stock::firstOrCreate(
                 [
                     'produit_id' => $produit->id,
                     'emplacement_id' => $emplacementId,
+                    'situation' => Stock::SITUATION_EN_STOCK,
                 ],
                 ['quantite' => 0]
             );
 
-            // Si une quantité initiale > 0 est fournie, enregistrer l'entrée et le mouvement
             if ($quantiteInitiale > 0) {
                 $stock->quantite = $quantiteInitiale;
                 $stock->save();
 
-                // Enregistrer le mouvement dans l'historique
                 \App\Models\Mouvement::create([
                     'reference' => \App\Models\Mouvement::generateReference(),
                     'type' => \App\Models\Mouvement::TYPE_ENTREE,
+                    'situation_depart' => null,
+                    'situation_arrivee' => Stock::SITUATION_EN_STOCK,
                     'produit_id' => $produit->id,
                     'equipement_id' => null,
                     'quantite' => $quantiteInitiale,
@@ -213,7 +219,7 @@ class ProductController extends Controller
 
         return redirect()
             ->route('it.products.index')
-            ->with('success', "Le matériel « {$produit->nom} » a été ajouté avec succès (stock initial : {$quantiteInitiale} unité(s)).");
+            ->with('success', "Matériel ajouté avec succès.");
     }
 
     /**
@@ -221,7 +227,7 @@ class ProductController extends Controller
      */
     public function show(Produit $product): View
     {
-        $product->load('categorie');
+        $product->load(['categorie', 'stocks.emplacement']);
 
         return view('it.products.show', compact('product'));
     }
@@ -243,21 +249,36 @@ class ProductController extends Controller
     {
         $validated = $request->validated();
 
-        // Handle photo replacement
+        // Prevent NULL on NOT NULL columns
+        $validated['marque'] = $validated['marque'] ?? '';
+        $validated['modele'] = $validated['modele'] ?? '';
+
         if ($request->hasFile('photo')) {
-            // Delete old photo if exists
             if ($product->photo && Storage::disk('public')->exists($product->photo)) {
                 Storage::disk('public')->delete($product->photo);
             }
+            if ($product->photo && file_exists(public_path('storage/' . $product->photo))) {
+                @unlink(public_path('storage/' . $product->photo));
+            }
 
-            $validated['photo'] = $request->file('photo')->store('products', 'public');
+            $path = $request->file('photo')->store('products', 'public');
+            $validated['photo'] = $path;
+
+            // Mirror to public/storage/products
+            try {
+                $publicTarget = public_path('storage/' . $path);
+                if (!is_dir(dirname($publicTarget))) {
+                    @mkdir(dirname($publicTarget), 0777, true);
+                }
+                @copy(storage_path('app/public/' . $path), $publicTarget);
+            } catch (\Throwable $e) {}
         }
 
         $product->update($validated);
 
         return redirect()
             ->route('it.products.show', $product)
-            ->with('success', "La référence « {$product->nom} » a été mise à jour avec succès.");
+            ->with('success', "Matériel mis à jour avec succès.");
     }
 
     /**
@@ -268,9 +289,7 @@ class ProductController extends Controller
         $newStatus = $product->isActif() ? Produit::STATUT_ARCHIVE : Produit::STATUT_ACTIF;
         $product->update(['statut' => $newStatus]);
 
-        $label = $newStatus === Produit::STATUT_ACTIF ? 'réactivée' : 'archivée';
-
-        return back()->with('success', "La référence « {$product->nom} » est désormais {$label}.");
+        return back()->with('success', "Statut du matériel mis à jour.");
     }
 
     /**
@@ -278,16 +297,14 @@ class ProductController extends Controller
      */
     public function destroy(Produit $product): RedirectResponse
     {
-        // Delete photo if exists
         if ($product->photo && Storage::disk('public')->exists($product->photo)) {
             Storage::disk('public')->delete($product->photo);
         }
 
-        $nom = $product->nom;
         $product->delete();
 
         return redirect()
             ->route('it.products.index')
-            ->with('success', "La référence « {$nom} » a été supprimée du catalogue.");
+            ->with('success', "Matériel supprimé avec succès.");
     }
 }

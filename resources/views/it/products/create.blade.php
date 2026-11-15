@@ -137,28 +137,27 @@
                             class="block w-full py-2.5 px-3.5 bg-surface/50 border border-border rounded-xl text-xs font-bold text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                         />
                         <p class="text-[11px] text-content-secondary mt-1">
-                            Si supérieure à 0, une entrée sera automatiquement consignée dans l'historique des mouvements.
+                            Unités initiales disponibles en réserve.
                         </p>
                     </div>
 
-                    <!-- 6. Emplacement de stockage (si plusieurs disponibles) -->
+                    <!-- 6. Seuil minimum d'alerte -->
                     <div>
-                        <label for="emplacement_id" class="block text-xs font-bold text-content uppercase tracking-wider mb-2">
-                            Emplacement de stockage
+                        <label for="seuil_minimum" class="block text-xs font-bold text-content uppercase tracking-wider mb-2">
+                            Seuil minimum d'alerte <span class="text-content-secondary font-normal text-[11px]">(défaut : 1)</span>
                         </label>
-                        <select
-                            id="emplacement_id"
-                            name="emplacement_id"
-                            class="block w-full py-2.5 px-3.5 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                        >
-                            @foreach ($emplacements as $emp)
-                                <option value="{{ $emp->id }}" {{ (string)old('emplacement_id') === (string)$emp->id ? 'selected' : '' }}>
-                                    {{ $emp->nom }}
-                                </option>
-                            @endforeach
-                        </select>
+                        <input
+                            type="number"
+                            id="seuil_minimum"
+                            name="seuil_minimum"
+                            value="{{ old('seuil_minimum', 1) }}"
+                            min="0"
+                            step="1"
+                            placeholder="1"
+                            class="block w-full py-2.5 px-3.5 bg-surface/50 border border-border rounded-xl text-xs font-bold text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                        />
                         <p class="text-[11px] text-content-secondary mt-1">
-                            Lieu physique où le matériel est entreposé.
+                            Alerte déclenchée si les unités en stock tombent sous ce seuil.
                         </p>
                     </div>
                 </div>

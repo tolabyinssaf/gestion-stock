@@ -43,6 +43,18 @@ class EmplacementSeeder extends Seeder
                 'description' => 'Postes de travail des services administratifs, RH et comptabilité.',
                 'statut' => Emplacement::STATUT_ACTIF,
             ],
+            [
+                'nom' => 'Salle de production',
+                'code' => 'LOC-PROD-01',
+                'description' => 'Zone de travail et postes opérationnels de production.',
+                'statut' => Emplacement::STATUT_ACTIF,
+            ],
+            [
+                'nom' => 'Service commercial',
+                'code' => 'LOC-COM-01',
+                'description' => 'Bureaux et équipements du service commercial.',
+                'statut' => Emplacement::STATUT_ACTIF,
+            ],
         ];
 
         foreach ($emplacements as $item) {
