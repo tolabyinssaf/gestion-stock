@@ -174,6 +174,11 @@
                     <!-- Quantité demandée -->
                     <td class="px-5 py-4 whitespace-nowrap text-xs font-bold text-content">
                         {{ $demande->quantite }} unité(s)
+                        @if ($demande->prix_estime)
+                            <div class="text-[10px] text-content-secondary font-normal">
+                                ~ {{ number_format($demande->prix_estime * $demande->quantite, 2, ',', ' ') }} €
+                            </div>
+                        @endif
                     </td>
 
                     <!-- Priorité -->

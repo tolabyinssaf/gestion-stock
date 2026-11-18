@@ -44,7 +44,7 @@ class ChangementSituationRequest extends FormRequest
                 'exists:emplacements,id',
             ],
             'motif' => [
-                'required',
+                'nullable',
                 'string',
                 'max:255',
             ],

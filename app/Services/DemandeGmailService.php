@@ -49,11 +49,13 @@ class DemandeGmailService
         Produit $produit,
         int $quantite,
         string $priorite,
-        string $motif,
+        ?string $motif,
         ?string $commentaire,
         User $responsableIt,
         ?string $destinataireNom = null,
-        ?string $emailDestinataire = null
+        ?string $emailDestinataire = null,
+        ?string $emailExpediteur = null,
+        ?float $prixEstime = null
     ): string {
         $prioriteLabel = match ($priorite) {
             DemandeMateriel::PRIORITE_IMPORTANTE => 'Importante',
@@ -66,23 +68,16 @@ class DemandeGmailService
         $destEmail = !empty($emailDestinataire) ? $emailDestinataire : ($config['email'] ?? 'Non spécifié');
 
         $senderNom = $responsableIt->name;
-        $senderEmail = $responsableIt->email;
+        $senderEmail = !empty($emailExpediteur) ? $emailExpediteur : $responsableIt->email;
         $dateEnvoi = now()->format('d/m/Y à H:i');
 
         $categorie = $produit->category->nom ?? ($produit->categorie->nom ?? 'Matériel informatique');
         $designation = $produit->designation ?? $produit->nom;
 
         $lines = [
-            '==================================================',
-            'DE (Expéditeur)   : ' . $senderNom . ' <' . $senderEmail . '> (Gestionnaire de stock)',
-            'À  (Destinataire) : ' . $destNom . ' <' . $destEmail . '>',
-            'DATE              : ' . $dateEnvoi,
-            'OBJET             : ' . $this->genererObjet($produit),
-            '==================================================',
-            '',
             'Bonjour ' . $destNom . ',',
             '',
-            'Je vous soumets une demande de matériel informatique pour les besoins de l\'entreprise.',
+            'Je vous soumets une demande de matériel informatique :',
             '',
             '■ MATÉRIEL DEMANDÉ :',
             '- Produit : ' . $designation,
@@ -90,25 +85,36 @@ class DemandeGmailService
             '- Catégorie : ' . $categorie,
             '- Quantité demandée : ' . $quantite . ' unité(s)',
             '- Priorité : ' . $prioriteLabel,
-            '',
-            '■ SITUATION DU STOCK ACTUEL :',
-            '- En stock (réserve disponible) : ' . $produit->quantite_en_stock . ' unité(s)',
-            '- En utilisation (postes de travail) : ' . $produit->quantite_en_utilisation . ' unité(s)',
-            '- En panne (hors service) : ' . $produit->quantite_en_panne . ' unité(s)',
-            '- Total suivi : ' . $produit->total_stock . ' unité(s)',
         ];
 
-        if ($produit->seuil_minimum > 0) {
-            $lines[] = '- Seuil d\'alerte stock minimum : ' . $produit->seuil_minimum . ' unité(s)';
+        if ($prixEstime !== null && $prixEstime > 0) {
+            $lines[] = '- Estimation du prix unitaire : ' . number_format($prixEstime, 2, ',', ' ') . ' € HT';
+            if ($quantite > 1) {
+                $totalEstime = $prixEstime * $quantite;
+                $lines[] = '- Montant total estimé : ' . number_format($totalEstime, 2, ',', ' ') . ' € HT';
+            }
         }
 
         $lines[] = '';
-        $lines[] = '■ MOTIF DE LA DEMANDE :';
-        $lines[] = trim($motif);
+        $lines[] = '■ SITUATION DU STOCK ACTUEL :';
+        $lines[] = '- En stock : ' . $produit->quantite_en_stock . ' unité(s)';
+        $lines[] = '- En utilisation : ' . $produit->quantite_en_utilisation . ' unité(s)';
+        $lines[] = '- En panne : ' . $produit->quantite_en_panne . ' unité(s)';
+        $lines[] = '- Total : ' . $produit->total_stock . ' unité(s)';
 
-        if (!empty($commentaire)) {
+        if ($produit->seuil_minimum > 0) {
+            $lines[] = '- Seuil d\'alerte : ' . $produit->seuil_minimum . ' unité(s)';
+        }
+
+        if (!empty(trim((string)$motif))) {
             $lines[] = '';
-            $lines[] = '■ OBSERVATIONS COMPLÉMENTAIRES :';
+            $lines[] = '■ MOTIF DE LA DEMANDE :';
+            $lines[] = trim($motif);
+        }
+
+        if (!empty(trim((string)$commentaire))) {
+            $lines[] = '';
+            $lines[] = '■ OBSERVATIONS :';
             $lines[] = trim($commentaire);
         }
 
@@ -116,12 +122,7 @@ class DemandeGmailService
         $lines[] = 'Je vous remercie de bien vouloir étudier cette demande.';
         $lines[] = '';
         $lines[] = 'Cordialement,';
-        $lines[] = '';
-        $lines[] = '--------------------------------------------------';
         $lines[] = $senderNom;
-        $lines[] = 'Gestionnaire de stock — Service Informatique';
-        $lines[] = 'VAR du Lassureur';
-        $lines[] = 'E-mail : ' . $senderEmail;
 
         return implode("\r\n", $lines);
     }

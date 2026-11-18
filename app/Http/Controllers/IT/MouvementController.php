@@ -70,7 +70,7 @@ class MouvementController extends Controller
             ->when($dateFin, fn ($q) => $q->whereDate('date_mouvement', '<=', $dateFin))
             ->orderBy('date_mouvement', 'desc')
             ->orderBy('created_at', 'desc')
-            ->paginate(15)
+            ->paginate(10)
             ->withQueryString();
 
         return view('it.mouvements.index', compact(

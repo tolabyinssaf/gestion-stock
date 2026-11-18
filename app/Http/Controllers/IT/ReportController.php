@@ -98,7 +98,7 @@ class ReportController extends Controller
                 'rapport_stock_' . now()->format('Ymd_His') . '.csv',
                 $headers,
                 $rows,
-                ['title' => 'Rapport de stock — VAR du Lassureur', 'filters' => $this->buildFilterSummary($request)]
+                ['title' => 'Rapport de stock', 'filters' => $this->buildFilterSummary($request)]
             );
         }
 
@@ -147,23 +147,16 @@ class ReportController extends Controller
 
             $sujet = 'Rapport de stock matériel — ' . now()->format('d/m/Y');
             $corpsLignes = [
-                '==================================================',
-                'DE (Expéditeur)   : ' . $senderNom . ' <' . $senderEmail . '> (Gestionnaire de stock)',
-                'À  (Destinataire) : ' . $destinataireNom . ' <' . $destinataireEmail . '>',
-                'DATE              : ' . now()->format('d/m/Y à H:i'),
-                'OBJET             : ' . $sujet,
-                '==================================================',
-                '',
                 'Bonjour ' . $destinataireNom . ',',
                 '',
                 'Veuillez trouver ci-joint le rapport de stock de matériel informatique édité le ' . now()->format('d/m/Y à H:i') . '.',
                 '',
-                '■ SYNTHÈSE DES SITUATIONS DU STOCK :',
+                '■ SYNTHÈSE DU STOCK :',
                 '- Matériels enregistrés : ' . $totalArticles,
-                '- En stock (réserve disponible) : ' . $totalEnStock,
-                '- En utilisation (postes de travail) : ' . $totalEnUtil,
-                '- En panne (hors service) : ' . $totalEnPanne,
-                '- Total global des unités : ' . $totalUnites,
+                '- En stock : ' . $totalEnStock,
+                '- En utilisation : ' . $totalEnUtil,
+                '- En panne : ' . $totalEnPanne,
+                '- Total unités : ' . $totalUnites,
             ];
 
             $filterSummary = $this->buildFilterSummary($request);
@@ -172,11 +165,8 @@ class ReportController extends Controller
             }
 
             $corpsLignes[] = '';
-            $corpsLignes[] = 'Le fichier PDF correspondant a été généré depuis Stock Matériel. Pensez à l\'insérer en pièce jointe de ce courriel avant l\'envoi.';
-            $corpsLignes[] = '';
             $corpsLignes[] = 'Cordialement,';
-            $corpsLignes[] = auth()->user()->name ?? 'Gestionnaire de stock';
-            $corpsLignes[] = 'Service informatique — VAR du Lassureur';
+            $corpsLignes[] = $senderNom;
 
             $corps = implode("\r\n", $corpsLignes);
             $gmailUrl = $this->gmailService->buildGmailUrl($destinataireEmail, $sujet, $corps);
@@ -189,7 +179,7 @@ class ReportController extends Controller
             ]);
         }
 
-        $materiels = $query->orderBy('nom')->paginate(20)->withQueryString();
+        $materiels = $query->orderBy('nom')->paginate(10)->withQueryString();
         $categories = Categorie::where('statut', Categorie::STATUT_ACTIF)->orderBy('nom')->get();
         $emplacements = Emplacement::where('statut', Emplacement::STATUT_ACTIF)->orderBy('nom')->get();
         $destinataireConfig = $this->gmailService->getDirecteurConfig();
@@ -307,18 +297,11 @@ class ReportController extends Controller
 
             $sujet = 'Rapport des mouvements de stock — ' . now()->format('d/m/Y');
             $corpsLignes = [
-                '==================================================',
-                'DE (Expéditeur)   : ' . $senderNom . ' <' . $senderEmail . '> (Gestionnaire de stock)',
-                'À  (Destinataire) : ' . $destinataireNom . ' <' . $destinataireEmail . '>',
-                'DATE              : ' . now()->format('d/m/Y à H:i'),
-                'OBJET             : ' . $sujet,
-                '==================================================',
-                '',
                 'Bonjour ' . $destinataireNom . ',',
                 '',
-                'Veuillez trouver ci-joint le relevé complet des mouvements de stock édité le ' . now()->format('d/m/Y à H:i') . '.',
+                'Veuillez trouver ci-joint le relevé des mouvements de stock édité le ' . now()->format('d/m/Y à H:i') . '.',
                 '',
-                'Synthèse des mouvements filtrés :',
+                '■ SYNTHÈSE DES MOUVEMENTS :',
                 '- Nombre de mouvements : ' . $totalMouvements,
             ];
 
@@ -328,11 +311,8 @@ class ReportController extends Controller
             }
 
             $corpsLignes[] = '';
-            $corpsLignes[] = 'Le fichier PDF correspondant a été généré depuis Stock Matériel. Pensez à l\'insérer en pièce jointe de ce courriel avant l\'envoi.';
-            $corpsLignes[] = '';
             $corpsLignes[] = 'Cordialement,';
-            $corpsLignes[] = auth()->user()->name ?? 'Gestionnaire de stock';
-            $corpsLignes[] = 'Service informatique — VAR du Lassureur';
+            $corpsLignes[] = $senderNom;
 
             $corps = implode("\r\n", $corpsLignes);
             $gmailUrl = $this->gmailService->buildGmailUrl($destinataireEmail, $sujet, $corps);
@@ -345,7 +325,7 @@ class ReportController extends Controller
             ]);
         }
 
-        $mouvements = $query->latest('date_mouvement')->latest('id')->paginate(20)->withQueryString();
+        $mouvements = $query->latest('date_mouvement')->latest('id')->paginate(10)->withQueryString();
         $typesMouvements = Mouvement::TYPES;
         $destinataireConfig = $this->gmailService->getDirecteurConfig();
 

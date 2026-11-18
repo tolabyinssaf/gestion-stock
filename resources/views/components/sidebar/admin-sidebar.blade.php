@@ -137,24 +137,7 @@
 
         <!-- SECTION: COMPTE -->
         <div class="pt-2 border-t border-border/80">
-            <p
-                x-show="!sidebarCollapsed"
-                class="px-3 text-[11px] font-semibold text-content-secondary/80 uppercase tracking-wider mb-2"
-            >
-                Compte
-            </p>
             <div class="space-y-1">
-                <!-- Mon profil -->
-                <a
-                    href="{{ route('profile.edit') }}"
-                    class="group flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all duration-150 {{ request()->routeIs('profile.edit') ? 'bg-primary/10 text-primary font-semibold' : 'text-content hover:bg-surface hover:text-primary' }}"
-                    :class="sidebarCollapsed ? 'justify-center' : ''"
-                    :title="sidebarCollapsed ? 'Mon profil' : ''"
-                >
-                    <x-ui.icon name="user" class="w-5 h-5 flex-shrink-0 {{ request()->routeIs('profile.edit') ? 'text-primary' : 'text-content-secondary group-hover:text-primary' }}" />
-                    <span x-show="!sidebarCollapsed" class="truncate">Mon profil</span>
-                </a>
-
                 <!-- Déconnexion -->
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf

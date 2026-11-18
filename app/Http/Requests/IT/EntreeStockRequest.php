@@ -33,7 +33,7 @@ class EntreeStockRequest extends FormRequest
                 'exists:equipements,id',
             ],
             'motif' => [
-                'required',
+                'nullable',
                 'string',
                 'max:255',
             ],

@@ -93,14 +93,8 @@ class StockController extends Controller
                 $ruptureStock++;
 
                 $sujet = 'Demande de réapprovisionnement — ' . $nomProd;
-                $corps = "==================================================\r\n"
-                    . "DE (Expéditeur)   : {$senderNom} <{$senderEmail}> (Gestionnaire de stock)\r\n"
-                    . "À  (Destinataire) : {$directeurNom} <{$directeurEmail}>\r\n"
-                    . "DATE              : " . now()->format('d/m/Y à H:i') . "\r\n"
-                    . "OBJET             : {$sujet}\r\n"
-                    . "==================================================\r\n\r\n"
-                    . "Bonjour {$directeurNom},\r\n\r\n"
-                    . "Je vous sollicite pour une demande urgente de réapprovisionnement de matériel informatique :\r\n\r\n"
+                $corps = "Bonjour {$directeurNom},\r\n\r\n"
+                    . "Je vous sollicite pour une demande de réapprovisionnement de matériel informatique :\r\n\r\n"
                     . "■ MATÉRIEL CONCERNÉ :\r\n"
                     . "- Produit : {$nomProd}\r\n"
                     . "- Référence : {$p->reference}\r\n"
@@ -110,12 +104,8 @@ class StockController extends Controller
                     . "- En panne : {$qtePanne}\r\n"
                     . "- Quantité souhaitée : 5\r\n\r\n"
                     . "Merci de bien vouloir valider cette commande.\r\n\r\n"
-                    . "Cordialement,\r\n\r\n"
-                    . "--------------------------------------------------\r\n"
-                    . "{$senderNom}\r\n"
-                    . "Gestionnaire de stock — Service Informatique\r\n"
-                    . "VAR du Lassureur\r\n"
-                    . "E-mail : {$senderEmail}";
+                    . "Cordialement,\r\n"
+                    . "{$senderNom}";
 
                 $gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1'
                     . '&to=' . rawurlencode($directeurEmail)
@@ -134,13 +124,7 @@ class StockController extends Controller
                 $stockFaible++;
 
                 $sujet = 'Alerte stock faible — ' . $nomProd;
-                $corps = "==================================================\r\n"
-                    . "DE (Expéditeur)   : {$senderNom} <{$senderEmail}> (Gestionnaire de stock)\r\n"
-                    . "À  (Destinataire) : {$directeurNom} <{$directeurEmail}>\r\n"
-                    . "DATE              : " . now()->format('d/m/Y à H:i') . "\r\n"
-                    . "OBJET             : {$sujet}\r\n"
-                    . "==================================================\r\n\r\n"
-                    . "Bonjour {$directeurNom},\r\n\r\n"
+                $corps = "Bonjour {$directeurNom},\r\n\r\n"
                     . "Je vous soumets une demande de réapprovisionnement pour le matériel suivant en stock faible :\r\n\r\n"
                     . "■ MATÉRIEL CONCERNÉ :\r\n"
                     . "- Produit : {$nomProd}\r\n"
@@ -152,12 +136,8 @@ class StockController extends Controller
                     . "- Seuil d'alerte : {$seuil}\r\n"
                     . "- Quantité souhaitée : 5\r\n\r\n"
                     . "Merci de bien vouloir étudier cette demande.\r\n\r\n"
-                    . "Cordialement,\r\n\r\n"
-                    . "--------------------------------------------------\r\n"
-                    . "{$senderNom}\r\n"
-                    . "Gestionnaire de stock — Service Informatique\r\n"
-                    . "VAR du Lassureur\r\n"
-                    . "E-mail : {$senderEmail}";
+                    . "Cordialement,\r\n"
+                    . "{$senderNom}";
 
                 $gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1'
                     . '&to=' . rawurlencode($directeurEmail)
@@ -214,7 +194,7 @@ class StockController extends Controller
             $query->whereRaw('(SELECT COALESCE(SUM(quantite), 0) FROM stocks WHERE stocks.produit_id = produits.id AND (stocks.situation = "en_stock" OR stocks.situation IS NULL)) > COALESCE(NULLIF(produits.seuil_minimum, 0), 1)');
         }
 
-        $produits = $query->orderBy('nom', 'asc')->paginate(15)->withQueryString();
+        $produits = $query->orderBy('nom', 'asc')->paginate(10)->withQueryString();
         $produitsQuantite = $produits; // Rétro-compatibilité
 
         $categories = Categorie::where('statut', Categorie::STATUT_ACTIF)->orderBy('nom')->get();

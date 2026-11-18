@@ -68,7 +68,7 @@ class ActivityLogController extends Controller
             $query->whereDate('created_at', '<=', $dateFin);
         }
 
-        $logs = $query->latest('created_at')->paginate(20)->withQueryString();
+        $logs = $query->latest('created_at')->paginate(10)->withQueryString();
         $users = User::orderBy('name')->get();
 
         return view('admin.activities.index', compact('logs', 'users'));

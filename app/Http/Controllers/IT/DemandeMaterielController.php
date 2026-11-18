@@ -39,6 +39,16 @@ class DemandeMaterielController extends Controller
                 // Ignore
             }
         }
+
+        if (Schema::hasTable('demandes_materiel') && !Schema::hasColumn('demandes_materiel', 'prix_estime')) {
+            try {
+                Schema::table('demandes_materiel', function (\Illuminate\Database\Schema\Blueprint $table) {
+                    $table->decimal('prix_estime', 10, 2)->nullable()->after('priorite');
+                });
+            } catch (\Throwable $e) {
+                // Ignore
+            }
+        }
     }
 
     /**
@@ -79,7 +89,7 @@ class DemandeMaterielController extends Controller
         ])->count();
         $pretesCount = $demandesATraiterCount;
 
-        $demandes = $query->latest()->paginate(15)->withQueryString();
+        $demandes = $query->latest()->paginate(10)->withQueryString();
 
         return view('it.demandes.index', compact(
             'demandes',
@@ -140,6 +150,12 @@ class DemandeMaterielController extends Controller
             ? $validated['email_destinataire']
             : ($directeurConfig['email'] ?? '');
 
+        $emailExpediteur = !empty($validated['email_expediteur'])
+            ? $validated['email_expediteur']
+            : $user->email;
+
+        $prixEstime = !empty($validated['prix_estime']) ? (float) $validated['prix_estime'] : null;
+
         if (empty($emailDestinataire) && ($validated['action_type'] ?? '') === 'prepare_gmail') {
             return back()->withInput()->with('error', 'Veuillez saisir l\'adresse e-mail du destinataire ou configurer l\'adresse de la Direction dans les paramètres.');
         }
@@ -149,11 +165,13 @@ class DemandeMaterielController extends Controller
             $produit,
             (int) $validated['quantite'],
             $validated['priorite'],
-            $validated['motif'],
+            $validated['motif'] ?? null,
             $validated['commentaire'] ?? null,
             $user,
             $destinataireNom,
-            $emailDestinataire
+            $emailDestinataire,
+            $emailExpediteur,
+            $prixEstime
         );
 
         $statutPreparation = ($validated['action_type'] ?? 'save_draft') === 'prepare_gmail'
@@ -166,7 +184,8 @@ class DemandeMaterielController extends Controller
             'user_id' => $user->id,
             'quantite' => $validated['quantite'],
             'priorite' => $validated['priorite'],
-            'motif' => $validated['motif'],
+            'prix_estime' => $prixEstime,
+            'motif' => $validated['motif'] ?? '',
             'commentaire' => $validated['commentaire'] ?? null,
             'statut_preparation' => $statutPreparation,
             'produit_designation' => $produit->designation ?? $produit->nom,
@@ -263,16 +282,24 @@ class DemandeMaterielController extends Controller
             ? $validated['email_destinataire']
             : ($demande->email_destinataire ?: ($directeurConfig['email'] ?? ''));
 
+        $emailExpediteur = !empty($validated['email_expediteur'])
+            ? $validated['email_expediteur']
+            : $user->email;
+
+        $prixEstime = !empty($validated['prix_estime']) ? (float) $validated['prix_estime'] : null;
+
         $objet = $this->gmailService->genererObjet($produit);
         $corps = $this->gmailService->genererCorps(
             $produit,
             (int) $validated['quantite'],
             $validated['priorite'],
-            $validated['motif'],
+            $validated['motif'] ?? null,
             $validated['commentaire'] ?? null,
             $user,
             $destinataireNom,
-            $emailDestinataire
+            $emailDestinataire,
+            $emailExpediteur,
+            $prixEstime
         );
 
         $statutPreparation = ($validated['action_type'] ?? 'update') === 'prepare_gmail'
@@ -283,7 +310,8 @@ class DemandeMaterielController extends Controller
             'produit_id' => $produit->id,
             'quantite' => $validated['quantite'],
             'priorite' => $validated['priorite'],
-            'motif' => $validated['motif'],
+            'prix_estime' => $prixEstime,
+            'motif' => $validated['motif'] ?? '',
             'commentaire' => $validated['commentaire'] ?? null,
             'statut_preparation' => $statutPreparation,
             'produit_designation' => $produit->designation ?? $produit->nom,
@@ -350,7 +378,11 @@ class DemandeMaterielController extends Controller
             $demande->priorite,
             $demande->motif,
             $demande->commentaire,
-            $user
+            $user,
+            $directeurConfig['nom'] ?? 'Direction Générale',
+            $directeurConfig['email'] ?? '',
+            $user->email,
+            $demande->prix_estime ? (float) $demande->prix_estime : null
         );
 
         $newDemande = DemandeMateriel::create([
@@ -359,6 +391,7 @@ class DemandeMaterielController extends Controller
             'user_id' => $user->id,
             'quantite' => $demande->quantite,
             'priorite' => $demande->priorite,
+            'prix_estime' => $demande->prix_estime,
             'motif' => $demande->motif,
             'commentaire' => $demande->commentaire,
             'statut_preparation' => DemandeMateriel::STATUT_BROUILLON,

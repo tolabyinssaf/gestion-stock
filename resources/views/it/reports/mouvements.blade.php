@@ -180,14 +180,7 @@
                     </td>
 
                     <!-- Motif -->
-                    <td class="px-5 py-3 text-xs text-content-secondary">
-                        {{ $m->motif ?? '-' }}
-                    </td>
-                </tr>
-            @endforeach
-
-                    <!-- Motif -->
-                    <td class="px-5 py-3 text-xs text-content max-w-xs truncate" title="{{ $m->motif }}">
+                    <td class="px-5 py-3 text-xs text-content-secondary max-w-xs truncate" title="{{ $m->motif }}">
                         {{ $m->motif ?? '-' }}
                     </td>
                 </tr>

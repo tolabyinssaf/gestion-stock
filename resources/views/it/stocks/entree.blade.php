@@ -156,7 +156,7 @@
                     <p class="text-xs text-content-secondary">Informations de traçabilité sur la réception de marchandise.</p>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div class="space-y-5">
                     <!-- Date de mouvement -->
                     <div>
                         <label for="date_mouvement" class="block text-xs font-bold text-content uppercase tracking-wider mb-2">
@@ -168,27 +168,12 @@
                             name="date_mouvement"
                             value="{{ old('date_mouvement', now()->format('Y-m-d\TH:i')) }}"
                             required
-                            class="w-full px-3.5 py-2.5 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                        >
-                    </div>
-
-                    <!-- Motif -->
-                    <div>
-                        <label for="motif" class="block text-xs font-bold text-content uppercase tracking-wider mb-2">
-                            Motif de l'entrée
-                        </label>
-                        <input
-                            type="text"
-                            id="motif"
-                            name="motif"
-                            placeholder="ex: Réception commande fournisseur, retour SAV..."
-                            value="{{ old('motif') }}"
-                            class="w-full px-3.5 py-2.5 bg-surface/50 border border-border rounded-xl text-xs text-content placeholder-content-secondary/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                            class="w-full sm:w-1/2 px-3.5 py-2.5 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                         >
                     </div>
 
                     <!-- Commentaire / Notes -->
-                    <div class="md:col-span-2">
+                    <div>
                         <label for="commentaire" class="block text-xs font-bold text-content uppercase tracking-wider mb-2">
                             Observations / Remarques
                         </label>

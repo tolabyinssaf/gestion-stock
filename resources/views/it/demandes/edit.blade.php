@@ -6,13 +6,14 @@
             produitId: '{{ old('produit_id', $demande->produit_id) }}',
             quantite: {{ old('quantite', $demande->quantite) }},
             priorite: '{{ old('priorite', $demande->priorite) }}',
+            prixEstime: '{{ old('prix_estime', $demande->prix_estime ?? '') }}',
             motif: '{{ addslashes(old('motif', $demande->motif)) }}',
             commentaire: '{{ addslashes(old('commentaire', $demande->commentaire ?? '')) }}',
             directeurNom: '{{ addslashes(old('destinataire_nom', $demande->destinataire_nom ?: ($directeurConfig['nom'] ?? 'Direction Générale'))) }}',
             directeurEmail: '{{ addslashes(old('email_destinataire', $demande->email_destinataire ?: ($directeurConfig['email'] ?? ''))) }}',
             isConfigured: {{ $isConfigured ? 'true' : 'false' }},
             userName: '{{ addslashes(Auth::user()->name) }}',
-            userEmail: '{{ addslashes(Auth::user()->email) }}',
+            userEmail: '{{ addslashes(old('email_expediteur', Auth::user()->email)) }}',
             productsMap: {
                 @foreach ($produits as $p)
                     '{{ $p->id }}': {
@@ -21,6 +22,7 @@
                         marque: '{{ addslashes($p->marque ?? '') }}',
                         modele: '{{ addslashes($p->modele ?? '') }}',
                         categorie: '{{ addslashes($p->category->nom ?? ($p->categorie->nom ?? 'Non classé')) }}',
+                        prixIndicatif: {{ $p->prix_indicatif !== null ? $p->prix_indicatif : 'null' }},
                         totalStock: {{ $p->total_stock }},
                         enStock: {{ $p->quantite_en_stock }},
                         enUtil: {{ $p->quantite_en_utilisation }},
@@ -32,6 +34,12 @@
             },
             getSelectedProduct() {
                 return this.produitId && this.productsMap[this.produitId] ? this.productsMap[this.produitId] : null;
+            },
+            onProductChange() {
+                const p = this.getSelectedProduct();
+                if (p && p.prixIndicatif !== null && !this.prixEstime) {
+                    this.prixEstime = p.prixIndicatif;
+                }
             },
             getGeneratedSubject() {
                 const p = this.getSelectedProduct();
@@ -55,19 +63,11 @@
 
                 const destNom = this.directeurNom ? this.directeurNom.trim() : 'Direction Générale';
                 const destEmail = this.directeurEmail ? this.directeurEmail.trim() : '[Non renseigné]';
-                const nowStr = new Date().toLocaleDateString('fr-FR') + ' à ' + new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
                 let lines = [
-                    '==================================================',
-                    'DE (Expéditeur)   : ' + this.userName + ' <' + this.userEmail + '> (Gestionnaire de stock)',
-                    'À  (Destinataire) : ' + destNom + ' <' + destEmail + '>',
-                    'DATE              : ' + nowStr,
-                    'OBJET             : ' + this.getGeneratedSubject(),
-                    '==================================================',
-                    '',
                     'Bonjour ' + destNom + ',',
                     '',
-                    'Je vous soumets une demande de matériel informatique pour les besoins de l\'entreprise.',
+                    'Je vous soumets une demande de matériel informatique :',
                     '',
                     '■ MATÉRIEL DEMANDÉ :',
                     '- Produit : ' + designation,
@@ -75,25 +75,37 @@
                     '- Catégorie : ' + cat,
                     '- Quantité demandée : ' + this.quantite + ' unité(s)',
                     '- Priorité : ' + prioriteTxt,
-                    '',
-                    '■ SITUATION DU STOCK ACTUEL :',
-                    '- En stock (réserve disponible) : ' + enStock + ' unité(s)',
-                    '- En utilisation (postes de travail) : ' + enUtil + ' unité(s)',
-                    '- En panne (hors service) : ' + enPanne + ' unité(s)',
-                    '- Total suivi : ' + total + ' unité(s)'
                 ];
 
-                if (seuil > 0) {
-                    lines.push('- Seuil d\'alerte stock minimum : ' + seuil + ' unité(s)');
+                if (this.prixEstime && parseFloat(this.prixEstime) > 0) {
+                    const pe = parseFloat(this.prixEstime);
+                    lines.push('- Estimation du prix unitaire : ' + pe.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' € HT');
+                    if (this.quantite > 1) {
+                        const totalPe = pe * this.quantite;
+                        lines.push('- Montant total estimé : ' + totalPe.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' € HT');
+                    }
                 }
 
                 lines.push('');
-                lines.push('■ MOTIF DE LA DEMANDE :');
-                lines.push(this.motif ? this.motif.trim() : '[Motif à renseigner]');
+                lines.push('■ SITUATION DU STOCK ACTUEL :');
+                lines.push('- En stock : ' + enStock + ' unité(s)');
+                lines.push('- En utilisation : ' + enUtil + ' unité(s)');
+                lines.push('- En panne : ' + enPanne + ' unité(s)');
+                lines.push('- Total : ' + total + ' unité(s)');
+
+                if (seuil > 0) {
+                    lines.push('- Seuil d\'alerte : ' + seuil + ' unité(s)');
+                }
+
+                if (this.motif && this.motif.trim().length > 0) {
+                    lines.push('');
+                    lines.push('■ MOTIF DE LA DEMANDE :');
+                    lines.push(this.motif.trim());
+                }
 
                 if (this.commentaire && this.commentaire.trim().length > 0) {
                     lines.push('');
-                    lines.push('■ OBSERVATIONS COMPLÉMENTAIRES :');
+                    lines.push('■ OBSERVATIONS :');
                     lines.push(this.commentaire.trim());
                 }
 
@@ -101,12 +113,7 @@
                 lines.push('Je vous remercie de bien vouloir étudier cette demande.');
                 lines.push('');
                 lines.push('Cordialement,');
-                lines.push('');
-                lines.push('--------------------------------------------------');
                 lines.push(this.userName);
-                lines.push('Gestionnaire de stock — Service Informatique');
-                lines.push('VAR du Lassureur');
-                lines.push('E-mail : ' + this.userEmail);
 
                 return lines.join('\n');
             }
@@ -181,6 +188,7 @@
                                     id="produit_id"
                                     name="produit_id"
                                     x-model="produitId"
+                                    @change="onProductChange()"
                                     required
                                     class="w-full px-3.5 py-2.5 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                                 >
@@ -214,7 +222,7 @@
                                 </div>
                             </div>
 
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <div>
                                     <label for="quantite" class="block text-xs font-bold text-content uppercase tracking-wider mb-2">
                                         Quantité demandée <span class="text-rose-500">*</span>
@@ -226,7 +234,7 @@
                                         min="1"
                                         x-model.number="quantite"
                                         required
-                                        class="w-full px-3.5 py-2.5 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                        class="w-full px-3.5 py-2.5 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-bold"
                                     >
                                 </div>
 
@@ -246,6 +254,27 @@
                                         <option value="urgente">Urgente</option>
                                     </select>
                                 </div>
+
+                                <div>
+                                    <label for="prix_estime" class="block text-xs font-bold text-content uppercase tracking-wider mb-2">
+                                        Estimation prix unitaire <span class="text-[10px] text-content-secondary font-normal lowercase">(facultatif)</span>
+                                    </label>
+                                    <div class="relative">
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            id="prix_estime"
+                                            name="prix_estime"
+                                            x-model="prixEstime"
+                                            placeholder="0.00"
+                                            class="w-full py-2.5 pl-3.5 pr-8 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-semibold"
+                                        >
+                                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-content-secondary text-xs font-bold">
+                                            €
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -262,14 +291,13 @@
                         <div class="space-y-5">
                             <div>
                                 <label for="motif" class="block text-xs font-bold text-content uppercase tracking-wider mb-2">
-                                    Motif de la demande <span class="text-rose-500">*</span>
+                                    Motif de la demande <span class="text-[10px] text-content-secondary font-normal lowercase">(facultatif)</span>
                                 </label>
                                 <input
                                     type="text"
                                     id="motif"
                                     name="motif"
                                     x-model="motif"
-                                    required
                                     class="w-full px-3.5 py-2.5 bg-surface/50 border border-border rounded-xl text-xs text-content placeholder-content-secondary/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                                 >
                             </div>
@@ -306,7 +334,7 @@
                         </div>
 
                         <!-- 1. DE : Expéditeur (Qui envoie) -->
-                        <div class="p-3.5 bg-surface/70 border border-border rounded-xl space-y-1.5">
+                        <div class="p-3.5 bg-surface/70 border border-border rounded-xl space-y-2">
                             <span class="text-[10px] font-extrabold text-primary uppercase tracking-wider block">
                                 📤 De (Expéditeur qui envoie)
                             </span>
@@ -314,8 +342,18 @@
                                 <span>{{ Auth::user()->name }}</span>
                                 <span class="text-[10px] px-2 py-0.5 rounded bg-primary/10 text-primary font-semibold">Gestionnaire de stock</span>
                             </div>
-                            <div class="text-[11px] text-content-secondary font-mono">
-                                {{ Auth::user()->email }}
+                            <div>
+                                <label for="email_expediteur" class="block text-[11px] font-bold text-content uppercase tracking-wider mb-1">
+                                    Adresse e-mail de l'expéditeur
+                                </label>
+                                <input
+                                    type="email"
+                                    id="email_expediteur"
+                                    name="email_expediteur"
+                                    x-model="userEmail"
+                                    placeholder="ex: expediteur@votre-entreprise.com"
+                                    class="w-full px-3 py-2 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-mono"
+                                >
                             </div>
                         </div>
 
@@ -377,7 +415,7 @@
                     <div>
                         <span class="text-[10px] font-bold text-content-secondary uppercase block">Expéditeur (De) :</span>
                         <span class="font-semibold text-content">{{ Auth::user()->name }}</span>
-                        <span class="text-content-secondary font-mono text-[11px]">&lt;{{ Auth::user()->email }}&gt;</span>
+                        <span class="text-content-secondary font-mono text-[11px]" x-text="'<' + (userEmail || 'Non spécifié') + '>'"></span>
                     </div>
                     <div>
                         <span class="text-[10px] font-bold text-content-secondary uppercase block">Destinataire (À) :</span>

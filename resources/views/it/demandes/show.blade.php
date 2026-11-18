@@ -233,6 +233,16 @@
                             <div class="text-3xl font-extrabold text-content">
                                 {{ $demande->quantite }} <span class="text-sm font-normal text-content-secondary">unité(s)</span>
                             </div>
+                            @if ($demande->prix_estime)
+                                <div class="mt-2 text-xs text-content-secondary">
+                                    Estimation unitaire : <strong class="text-content font-bold">{{ number_format($demande->prix_estime, 2, ',', ' ') }} € HT</strong>
+                                    @if ($demande->quantite > 1)
+                                        <span class="block text-[11px] text-content-secondary mt-0.5">
+                                            Total estimé : <strong class="text-content font-bold">{{ number_format($demande->prix_estime * $demande->quantite, 2, ',', ' ') }} € HT</strong>
+                                        </span>
+                                    @endif
+                                </div>
+                            @endif
                         </div>
 
                         <div class="mt-4 pt-3 border-t border-border flex items-center justify-between text-xs">
@@ -268,9 +278,6 @@
                         <div class="font-mono text-content-secondary text-[11px]">
                             {{ $demande->user->email ?? 'N/A' }}
                         </div>
-                        <span class="inline-block text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded">
-                            Gestionnaire de stock — Service Informatique
-                        </span>
                     </div>
 
                     <div class="space-y-1 border-t sm:border-t-0 sm:border-l border-border pt-3 sm:pt-0 sm:pl-4">
@@ -283,9 +290,6 @@
                         <div class="font-mono text-content-secondary text-[11px]">
                             {{ $demande->email_destinataire }}
                         </div>
-                        <span class="inline-block text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                            Destinataire officiel de la demande
-                        </span>
                     </div>
                 </div>
 
@@ -294,7 +298,7 @@
                     <div>
                         <span class="text-[11px] font-bold text-content-secondary uppercase tracking-wider block mb-1">Motif de la demande</span>
                         <div class="text-xs text-content bg-surface p-3.5 rounded-xl border border-border leading-relaxed font-medium">
-                            {{ $demande->motif }}
+                            {{ $demande->motif ?: 'Non spécifié' }}
                         </div>
                     </div>
 

@@ -31,10 +31,12 @@ class DemandeMaterielRequest extends FormRequest
             ],
             'quantite' => ['required', 'integer', 'min:1'],
             'priorite' => ['required', Rule::in(DemandeMateriel::PRIORITES)],
-            'motif' => ['required', 'string', 'min:3', 'max:255'],
+            'prix_estime' => ['nullable', 'numeric', 'min:0'],
+            'motif' => ['nullable', 'string', 'max:255'],
             'commentaire' => ['nullable', 'string', 'max:1000'],
             'destinataire_nom' => ['nullable', 'string', 'max:150'],
             'email_destinataire' => ['nullable', 'email', 'max:150'],
+            'email_expediteur' => ['nullable', 'email', 'max:150'],
             'action_type' => ['nullable', Rule::in(['save_draft', 'prepare_gmail', 'update'])],
         ];
     }
@@ -61,7 +63,6 @@ class DemandeMaterielRequest extends FormRequest
         return [
             'produit_id.exists' => 'Le produit sélectionné doit être un article actif du catalogue.',
             'quantite.min' => 'La quantité demandée doit être d\'au moins 1 unité.',
-            'motif.required' => 'Le motif de la demande est obligatoire pour justifier le besoin.',
         ];
     }
 }

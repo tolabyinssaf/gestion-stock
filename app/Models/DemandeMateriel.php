@@ -40,6 +40,7 @@ class DemandeMateriel extends Model
         'user_id',
         'quantite',
         'priorite',
+        'prix_estime',
         'motif',
         'commentaire',
         'statut_preparation',
@@ -57,6 +58,7 @@ class DemandeMateriel extends Model
 
     protected $casts = [
         'quantite' => 'integer',
+        'prix_estime' => 'decimal:2',
         'stock_disponible_snapshot' => 'integer',
         'date_ouverture_gmail' => 'datetime',
         'est_archive' => 'boolean',

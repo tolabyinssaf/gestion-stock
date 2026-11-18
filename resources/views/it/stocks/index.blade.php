@@ -41,7 +41,6 @@
             situationDepart: 'en_stock',
             situationArrivee: 'en_utilisation',
             situationQuantite: 1,
-            situationMotif: '',
             situationConfirmeFonctionnel: false,
             get maxDisponible() {
                 if (!this.situationProduct) return 0;
@@ -62,10 +61,6 @@
                 this.situationDepart = depart;
                 this.situationArrivee = arrivee;
                 this.situationQuantite = 1;
-                this.situationMotif = (depart === 'en_stock' && arrivee === 'en_utilisation') ? 'Mise à disposition pour utilisation'
-                    : (depart === 'en_utilisation' && arrivee === 'en_stock') ? 'Retour en réserve'
-                    : (arrivee === 'en_panne') ? 'Déclaration de panne matérielle'
-                    : (depart === 'en_panne') ? 'Remise en service après réparation' : '';
                 this.situationConfirmeFonctionnel = false;
                 this.situationModalOpen = true;
             },
@@ -556,17 +551,6 @@
                                     class="w-full px-3.5 py-2.5 bg-surface/50 border border-border rounded-xl text-xs font-bold text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                                 >
                             </div>
-
-                            <div>
-                                <label class="block text-xs font-bold text-content uppercase tracking-wider mb-1.5">Motif</label>
-                                <input
-                                    type="text"
-                                    name="motif"
-                                    value="Livraison fournisseur / Réception"
-                                    required
-                                    class="w-full px-3.5 py-2.5 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                                >
-                            </div>
                         </div>
 
                         <div class="mt-6 flex items-center justify-end gap-3 pt-4 border-t border-border">
@@ -638,17 +622,6 @@
                                     :max="sortieStockActuel"
                                     required
                                     class="w-full px-3.5 py-2.5 bg-surface/50 border border-border rounded-xl text-xs font-bold text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/20"
-                                >
-                            </div>
-
-                            <div>
-                                <label class="block text-xs font-bold text-content uppercase tracking-wider mb-1.5">Motif justifié</label>
-                                <input
-                                    type="text"
-                                    name="motif"
-                                    placeholder="Ex: Mise au rebut matériel obsolète, Perte confirmée..."
-                                    required
-                                    class="w-full px-3.5 py-2.5 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-accent/20"
                                 >
                             </div>
                         </div>
@@ -762,19 +735,6 @@
                                     :max="maxDisponible"
                                     required
                                     class="w-full px-3.5 py-2.5 bg-surface/50 border border-border rounded-xl text-xs font-bold text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
-                                >
-                            </div>
-
-                            <!-- Motif -->
-                            <div>
-                                <label class="block text-xs font-bold text-content uppercase tracking-wider mb-1.5">Motif</label>
-                                <input
-                                    type="text"
-                                    name="motif"
-                                    x-model="situationMotif"
-                                    placeholder="Ex: Mise en service production, Défaillance matériel, Retour en réserve..."
-                                    required
-                                    class="w-full px-3.5 py-2.5 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20"
                                 >
                             </div>
 

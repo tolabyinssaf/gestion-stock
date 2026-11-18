@@ -2,7 +2,6 @@
 
     <div
         x-data="{
-            typeSuivi: '{{ old('type_suivi', $product->type_suivi) }}',
             photoPreview: '{{ $product->photo_url }}',
             handlePhotoChange(event) {
                 const file = event.target.files[0];
@@ -182,110 +181,14 @@
                 </div>
             </div>
 
-            <!-- SECTION 2: MODE DE TRAÇABILITÉ & GESTION -->
-            <div class="bg-white rounded-2xl border border-border p-6 sm:p-8 shadow-xs">
-                <div class="flex items-center gap-3 pb-5 mb-6 border-b border-border">
-                    <div class="w-10 h-10 rounded-xl bg-accent/10 text-accent flex items-center justify-center flex-shrink-0">
-                        <x-ui.icon name="tag" class="w-5 h-5" />
-                    </div>
-                    <div>
-                        <h2 class="text-base font-bold text-content">2. Mode de traçabilité & Gestion</h2>
-                        <p class="text-xs text-content-secondary">Déterminez comment les unités sont suivies dans les stocks</p>
-                    </div>
-                </div>
-
-                <!-- Type de suivi Cards -->
-                <div class="mb-6">
-                    <label class="block text-xs font-bold text-content uppercase tracking-wider mb-3">
-                        Type de suivi en inventaire <span class="text-red-500">*</span>
-                    </label>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Option 1: Individuel / Sérialisé -->
-                        <label
-                            class="relative flex flex-col p-5 border-2 rounded-2xl cursor-pointer transition-all"
-                            :class="typeSuivi === 'individuel' ? 'border-primary bg-primary/5 ring-2 ring-primary/10' : 'border-border bg-white hover:bg-surface/50'"
-                        >
-                            <div class="flex items-start justify-between">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-9 h-9 rounded-xl flex items-center justify-center" :class="typeSuivi === 'individuel' ? 'bg-primary text-white' : 'bg-surface text-content-secondary'">
-                                        <x-ui.icon name="tag" class="w-4 h-4" />
-                                    </div>
-                                    <div>
-                                        <h3 class="text-sm font-bold text-content">Suivi individuel sérialisé</h3>
-                                        <span class="text-[11px] font-semibold text-primary">Unité par unité (Numéro de série)</span>
-                                    </div>
-                                </div>
-                                <input
-                                    type="radio"
-                                    name="type_suivi"
-                                    value="individuel"
-                                    x-model="typeSuivi"
-                                    class="w-4 h-4 text-primary border-border focus:ring-primary/20 mt-1"
-                                />
-                            </div>
-                            <p class="text-xs text-content-secondary mt-3 leading-relaxed">
-                                Chaque exemplaire possède une identité propre, un numéro de série unique et un statut individuel (ordinateurs, écrans, téléphones, serveurs).
-                            </p>
-                        </label>
-
-                        <!-- Option 2: Quantitatif / En lot -->
-                        <label
-                            class="relative flex flex-col p-5 border-2 rounded-2xl cursor-pointer transition-all"
-                            :class="typeSuivi === 'quantite' ? 'border-accent bg-accent/5 ring-2 ring-accent/10' : 'border-border bg-white hover:bg-surface/50'"
-                        >
-                            <div class="flex items-start justify-between">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-9 h-9 rounded-xl flex items-center justify-center" :class="typeSuivi === 'quantite' ? 'bg-accent text-white' : 'bg-surface text-content-secondary'">
-                                        <x-ui.icon name="boxes" class="w-4 h-4" />
-                                    </div>
-                                    <div>
-                                        <h3 class="text-sm font-bold text-content">Suivi quantitatif en lot</h3>
-                                        <span class="text-[11px] font-semibold text-accent">Gestion par volume de stock</span>
-                                    </div>
-                                </div>
-                                <input
-                                    type="radio"
-                                    name="type_suivi"
-                                    value="quantite"
-                                    x-model="typeSuivi"
-                                    class="w-4 h-4 text-accent border-border focus:ring-accent/20 mt-1"
-                                />
-                            </div>
-                            <p class="text-xs text-content-secondary mt-3 leading-relaxed">
-                                Géré uniquement par quantité disponible en stock global (câbles, chargeurs, adaptateurs HDMI, souris d'entrée de gamme).
-                            </p>
-                        </label>
-                    </div>
-                    @error('type_suivi')
-                        <p class="text-[11px] text-red-600 mt-2">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <!-- Statut -->
-                <div class="pt-4 border-t border-border">
-                    <label for="statut" class="block text-xs font-bold text-content uppercase tracking-wider mb-2">
-                        Statut du produit <span class="text-red-500">*</span>
-                    </label>
-                    <select
-                        id="statut"
-                        name="statut"
-                        class="block w-full sm:w-64 py-2.5 px-3.5 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                    >
-                        <option value="actif" {{ old('statut', $product->statut) === 'actif' ? 'selected' : '' }}>Actif (disponible au catalogue)</option>
-                        <option value="archive" {{ old('statut', $product->statut) === 'archive' ? 'selected' : '' }}>Archivé (référence obsolète)</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- SECTION 3: SPÉCIFICATIONS & VISUEL -->
+            <!-- SECTION 2: SPÉCIFICATIONS & VISUEL -->
             <div class="bg-white rounded-2xl border border-border p-6 sm:p-8 shadow-xs">
                 <div class="flex items-center gap-3 pb-5 mb-6 border-b border-border">
                     <div class="w-10 h-10 rounded-xl bg-blue-50 text-primary-light flex items-center justify-center flex-shrink-0">
                         <x-ui.icon name="file-text" class="w-5 h-5" />
                     </div>
                     <div>
-                        <h2 class="text-base font-bold text-content">3. Spécifications & Visuel</h2>
+                        <h2 class="text-base font-bold text-content">2. Spécifications & Visuel</h2>
                         <p class="text-xs text-content-secondary">Détails techniques et illustration de la référence</p>
                     </div>
                 </div>
@@ -376,14 +279,14 @@
                 </div>
             </div>
 
-            <!-- SECTION 4: PARAMÈTRES D'APPROVISIONNEMENT & COÛT -->
+            <!-- SECTION 3: PARAMÈTRES D'APPROVISIONNEMENT & COÛT -->
             <div class="bg-white rounded-2xl border border-border p-6 sm:p-8 shadow-xs">
                 <div class="flex items-center gap-3 pb-5 mb-6 border-b border-border">
                     <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0">
                         <x-ui.icon name="bar-chart-3" class="w-5 h-5" />
                     </div>
                     <div>
-                        <h2 class="text-base font-bold text-content">4. Approvisionnement & Coûts</h2>
+                        <h2 class="text-base font-bold text-content">3. Approvisionnement & Coûts</h2>
                         <p class="text-xs text-content-secondary">Informations financières et seuils d'alerte</p>
                     </div>
                 </div>

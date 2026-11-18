@@ -191,22 +191,6 @@
                         >
                     </div>
 
-                    <!-- Motif de sortie -->
-                    <div>
-                        <label for="motif" class="block text-xs font-bold text-content uppercase tracking-wider mb-2">
-                            Motif de la sortie <span class="text-rose-500">*</span>
-                        </label>
-                        <input
-                            type="text"
-                            id="motif"
-                            name="motif"
-                            value="{{ old('motif') }}"
-                            required
-                            placeholder="ex: Dotation nouvel arrivant, remplacement matériel défectueux..."
-                            class="w-full px-3.5 py-2.5 bg-surface/50 border border-border rounded-xl text-xs text-content placeholder-content-secondary/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                        >
-                    </div>
-
                     <!-- Date de mouvement -->
                     <div>
                         <label for="date_mouvement" class="block text-xs font-bold text-content uppercase tracking-wider mb-2">
@@ -223,7 +207,7 @@
                     </div>
 
                     <!-- Commentaire -->
-                    <div>
+                    <div class="md:col-span-2">
                         <label for="commentaire" class="block text-xs font-bold text-content uppercase tracking-wider mb-2">
                             Observations / Remarques
                         </label>

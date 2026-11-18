@@ -104,7 +104,7 @@ class StockMovementService
                 'quantite' => $quantite,
                 'emplacement_source_id' => null,
                 'emplacement_destination_id' => $destinationId,
-                'motif' => $data['motif'],
+                'motif' => $data['motif'] ?? 'Entrée en stock',
                 'beneficiaire' => $data['beneficiaire'] ?? null,
                 'commentaire' => $data['commentaire'] ?? null,
                 'user_id' => $user->id,
@@ -209,17 +209,18 @@ class StockMovementService
                 'quantite' => $quantite,
                 'emplacement_source_id' => $sourceId,
                 'emplacement_destination_id' => null,
-                'motif' => $data['motif'],
+                'motif' => $data['motif'] ?? 'Sortie de stock',
                 'beneficiaire' => $data['beneficiaire'] ?? null,
                 'commentaire' => $data['commentaire'] ?? null,
                 'user_id' => $user->id,
                 'date_mouvement' => $data['date_mouvement'] ?? now()->toDateString(),
             ]);
 
+            $motifLog = $data['motif'] ?? 'Sortie de stock';
             $this->activityLogger->log(
                 module: 'stock',
                 actionType: 'sortie',
-                description: "Sortie définitive : {$quantite} x {$produit->nom} (Réf {$mvt->reference}) - Motif: {$data['motif']}",
+                description: "Sortie définitive : {$quantite} x {$produit->nom} (Réf {$mvt->reference}) - {$motifLog}",
                 entityType: 'Mouvement',
                 entityId: $mvt->id,
                 entityName: $mvt->reference,

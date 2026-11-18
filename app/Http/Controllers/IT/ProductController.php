@@ -45,11 +45,9 @@ class ProductController extends Controller
         $etatStock = $request->string('etat_stock')->trim()->value(); // disponible, faible, rupture
 
         // 1. Calcul des 4 cartes statistiques par situation
-        $totalProducts = Produit::where('statut', Produit::STATUT_ACTIF)->count();
+        $totalProducts = Produit::count();
 
-        $allActiveProds = Produit::with('stocks')
-            ->where('statut', Produit::STATUT_ACTIF)
-            ->get();
+        $allActiveProds = Produit::with('stocks')->get();
 
         $totalEnStock = 0;
         $totalEnUtilisation = 0;
@@ -70,8 +68,7 @@ class ProductController extends Controller
 
         // 3. Construction de la requête filtrée
         $query = Produit::query()
-            ->with(['categorie', 'stocks'])
-            ->where('statut', Produit::STATUT_ACTIF);
+            ->with(['categorie', 'stocks']);
 
         // Filtre Recherche
         if ($search) {
@@ -104,7 +101,7 @@ class ProductController extends Controller
         }
 
         $products = $query->orderBy('nom', 'asc')
-            ->paginate(15)
+            ->paginate(10)
             ->withQueryString();
 
         return view('it.products.index', compact(

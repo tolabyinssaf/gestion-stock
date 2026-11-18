@@ -96,17 +96,6 @@ if (empty($initials)) {
                     </div>
                 </div>
 
-                <!-- Links -->
-                <div class="py-1">
-                    <a
-                        href="{{ route('profile.edit') }}"
-                        class="flex items-center gap-2.5 px-4 py-2 text-xs font-medium text-content hover:bg-surface hover:text-primary transition-colors"
-                    >
-                        <x-ui.icon name="user" class="w-4 h-4 text-content-secondary" />
-                        <span>Mon profil</span>
-                    </a>
-                </div>
-
                 <!-- Logout -->
                 <div class="border-t border-border/80 pt-1">
                     <form method="POST" action="{{ route('logout') }}">

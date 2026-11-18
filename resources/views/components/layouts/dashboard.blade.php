@@ -86,16 +86,8 @@
 
             <!-- Footer -->
             <footer class="py-4 px-6 border-t border-border/80 bg-white text-center text-xs text-content-secondary">
-                <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-                    <p>&copy; {{ date('Y') }} {{ $appName }} &mdash; Gestion du stock de matériel informatique.</p>
-                    <div class="flex items-center gap-3 text-[11px]">
-                        <span class="inline-flex items-center gap-1.5 text-emerald-600 font-medium">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                            Système opérationnel
-                        </span>
-                        <span class="text-border">&bull;</span>
-                        <span>Version 1.0</span>
-                    </div>
+                <div class="max-w-7xl mx-auto">
+                    <p>&copy; {{ date('Y') }} {{ $appName }}</p>
                 </div>
             </footer>
         </div>

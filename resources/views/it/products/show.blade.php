@@ -39,19 +39,6 @@
                 <div class="flex items-center gap-3 flex-wrap">
                     <h1 class="text-2xl font-bold text-content tracking-tight">{{ $product->nom }}</h1>
 
-                    <!-- Status Badge -->
-                    @if ($product->isActif())
-                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                            Actif
-                        </span>
-                    @else
-                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
-                            <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                            Archivé
-                        </span>
-                    @endif
-
                     @if ($product->categorie)
                         <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-primary border border-blue-200">
                             <x-ui.icon name="layers" class="w-3.5 h-3.5" />
@@ -85,20 +72,6 @@
                     <x-ui.icon name="pencil" class="w-4 h-4" />
                     Modifier
                 </a>
-
-                <!-- Toggle status button -->
-                <form method="POST" action="{{ route('it.products.toggle-status', $product) }}" class="inline">
-                    @csrf
-                    @method('PATCH')
-                    <button
-                        type="submit"
-                        class="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-border bg-white text-xs font-semibold text-content hover:bg-surface transition-colors"
-                        title="{{ $product->isActif() ? 'Archiver le produit' : 'Réactiver le produit' }}"
-                    >
-                        <x-ui.icon name="archive" class="w-4 h-4 text-content-secondary" />
-                        {{ $product->isActif() ? 'Archiver' : 'Réactiver' }}
-                    </button>
-                </form>
 
                 <!-- Delete button -->
                 <button
@@ -346,7 +319,7 @@
                             <strong class="text-content">« {{ $product->nom }} »</strong> (SKU: {{ $product->reference }}) ?
                         </p>
                         <p class="text-[11px] text-content-secondary mt-2">
-                            Cette action supprimera également le visuel associé. Si vous souhaitez simplement retirer ce modèle des nouvelles attributions, privilégiez plutôt l'archivage.
+                            Cette action supprimera définitivement le produit ainsi que le visuel associé.
                         </p>
                     </div>
                 </div>
