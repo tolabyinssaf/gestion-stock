@@ -53,7 +53,7 @@ class SortieStockRequest extends FormRequest
             'date_mouvement' => [
                 'nullable',
                 'date',
-                'before_or_equal:today',
+                
             ],
         ];
     }
@@ -63,8 +63,6 @@ class SortieStockRequest extends FormRequest
         return [
             'produit_id.required' => 'Le produit est obligatoire.',
             'quantite.min' => 'La quantité à sortir doit être supérieure à zéro.',
-            'motif.required' => 'Le motif de la sortie est obligatoire.',
-            'date_mouvement.before_or_equal' => 'La date ne peut pas être future.',
-        ];
+            'motif.required' => 'Le motif de la sortie est obligatoire.',];
     }
 }

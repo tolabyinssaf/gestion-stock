@@ -64,7 +64,6 @@ class StoreEquipementRequest extends FormRequest
             'date_entree' => [
                 'nullable',
                 'date',
-                'before_or_equal:today',
             ],
             'observations' => [
                 'nullable',

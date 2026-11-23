@@ -221,6 +221,12 @@ class StockController extends Controller
     {
         $this->ensureTablesExist();
 
+        // 🔍 DIAGNOSTIC TEMPORAIRE — supprimer après résolution du problème
+        \Log::info('CHANGEMENT SITUATION - Payload reçu', [
+            'validated' => $request->validated(),
+            'raw'       => $request->all(),
+        ]);
+
         $service->changerSituation($request->validated(), auth()->user());
 
         return redirect()
@@ -251,7 +257,16 @@ class StockController extends Controller
             ->orderBy('nom')
             ->get();
 
-        return view('it.stocks.entree', compact('produits', 'equipements', 'equipementsIndividuels', 'emplacements'));
+        // Date "maintenant" dans le fuseau applicatif, pour préremplir le champ
+        $nowLocal = now()->timezone(config('app.timezone'))->format('Y-m-d\TH:i');
+
+        return view('it.stocks.entree', compact(
+            'produits',
+            'equipements',
+            'equipementsIndividuels',
+            'emplacements',
+            'nowLocal'
+        ));
     }
 
     /**
@@ -292,7 +307,15 @@ class StockController extends Controller
             ->orderBy('nom')
             ->get();
 
-        return view('it.stocks.sortie', compact('produits', 'equipements', 'equipementsDisponibles', 'emplacements'));
+        $nowLocal = now()->timezone(config('app.timezone'))->format('Y-m-d\TH:i');
+
+        return view('it.stocks.sortie', compact(
+            'produits',
+            'equipements',
+            'equipementsDisponibles',
+            'emplacements',
+            'nowLocal'
+        ));
     }
 
     /**
@@ -347,7 +370,9 @@ class StockController extends Controller
             ->orderBy('nom')
             ->get();
 
-        return view('it.stocks.correction', compact('produits', 'emplacements'));
+        $nowLocal = now()->timezone(config('app.timezone'))->format('Y-m-d\TH:i');
+
+        return view('it.stocks.correction', compact('produits', 'emplacements', 'nowLocal'));
     }
 
     /**

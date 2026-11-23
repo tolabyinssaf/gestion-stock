@@ -162,14 +162,22 @@
                         <label for="date_mouvement" class="block text-xs font-bold text-content uppercase tracking-wider mb-2">
                             Date de réception <span class="text-rose-500">*</span>
                         </label>
+                        @php
+                            // Date "maintenant" arrondie à la minute, dans le fuseau applicatif
+                            $nowLocal = now()->timezone(config('app.timezone'))->format('Y-m-d\TH:i');
+                        @endphp
                         <input
                             type="datetime-local"
                             id="date_mouvement"
                             name="date_mouvement"
-                            value="{{ old('date_mouvement', now()->format('Y-m-d\TH:i')) }}"
+                            value="{{ old('date_mouvement', $nowLocal) }}"
+                            max="{{ $nowLocal }}"
                             required
                             class="w-full sm:w-1/2 px-3.5 py-2.5 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                         >
+                        <p class="text-[11px] text-content-secondary mt-1.5">
+                            La date de réception ne peut pas être dans le futur.
+                        </p>
                     </div>
 
                     <!-- Commentaire / Notes -->

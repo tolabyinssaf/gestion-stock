@@ -50,7 +50,6 @@ class EntreeStockRequest extends FormRequest
             'date_mouvement' => [
                 'nullable',
                 'date',
-                'before_or_equal:today',
             ],
         ];
     }
@@ -60,8 +59,6 @@ class EntreeStockRequest extends FormRequest
         return [
             'produit_id.required' => 'Le produit est obligatoire.',
             'quantite.min' => 'La quantité doit être d\'au moins 1.',
-            'motif.required' => 'Le motif de l\'entrée est obligatoire.',
-            'date_mouvement.before_or_equal' => 'La date ne peut pas être future.',
-        ];
+            'motif.required' => 'Le motif de l\'entrée est obligatoire.',];
     }
 }

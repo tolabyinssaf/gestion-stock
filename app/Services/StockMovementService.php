@@ -33,7 +33,6 @@ class StockMovementService
 
     /**
      * Enregistrer une entrée en stock (réception).
-     * Par défaut, les produits entrent en situation 'en_stock' (disponible dans la réserve).
      */
     public function enregistrerEntree(array $data, User $user): Mouvement
     {
@@ -52,7 +51,6 @@ class StockMovementService
                     ]);
                 }
 
-                // Lock and increment stock for (produit, emplacement, situation)
                 $stock = Stock::firstOrCreate(
                     [
                         'produit_id' => $produit->id,
@@ -66,7 +64,6 @@ class StockMovementService
                 $stock->quantite += $quantite;
                 $stock->save();
             } else {
-                // Individual equipment entry
                 if (!$equipementId) {
                     throw ValidationException::withMessages([
                         'equipement_id' => 'Veuillez sélectionner l\'équipement individuel à réceptionner.',
@@ -129,7 +126,6 @@ class StockMovementService
 
     /**
      * Enregistrer une sortie définitive du stock (mise au rebut, perte confirmée, etc.).
-     * Le matériel quitte définitivement l'entreprise et réduit le stock global.
      */
     public function enregistrerSortie(array $data, User $user): Mouvement
     {
@@ -148,19 +144,28 @@ class StockMovementService
                     ]);
                 }
 
-                $stock = Stock::where('produit_id', $produit->id)
-                    ->where('emplacement_id', $sourceId)
+                // 🔧 CORRIGÉ : construire la requête sans filtrer sur emplacement_id s'il est null
+                // et inclure les lignes NULL pour "en_stock"
+                $query = Stock::where('produit_id', $produit->id)
                     ->where(function ($q) use ($situation) {
                         if ($situation === Stock::SITUATION_EN_STOCK) {
-                            $q->where('situation', Stock::SITUATION_EN_STOCK)->orWhereNull('situation');
+                            $q->where('situation', Stock::SITUATION_EN_STOCK)
+                              ->orWhereNull('situation');
                         } else {
                             $q->where('situation', $situation);
                         }
-                    })
-                    ->lockForUpdate()
-                    ->first();
+                    });
 
-                $disponible = $stock ? $stock->quantite : 0;
+                // 🔧 CORRIGÉ : ne filtrer par emplacement QUE si fourni explicitement
+                if (!empty($sourceId)) {
+                    $query->where('emplacement_id', $sourceId);
+                }
+
+                // 🔧 CORRIGÉ : récupérer TOUTES les lignes correspondantes (pas seulement la première)
+                // pour pouvoir piocher dans plusieurs emplacements si nécessaire
+                $stocks = $query->lockForUpdate()->get();
+
+                $disponible = $stocks->sum('quantite');
 
                 if ($disponible < $quantite) {
                     throw ValidationException::withMessages([
@@ -168,9 +173,22 @@ class StockMovementService
                     ]);
                 }
 
-                $stock->quantite -= $quantite;
-                $stock->save();
-                $sourceId = $stock->emplacement_id;
+                // 🔧 CORRIGÉ : déduire la quantité en parcourant les lignes disponibles
+                $reste = $quantite;
+                foreach ($stocks as $stockLigne) {
+                    if ($reste <= 0) break;
+
+                    $preleve = min($stockLigne->quantite, $reste);
+                    $stockLigne->quantite -= $preleve;
+                    $stockLigne->save();
+
+                    // Mémoriser l'emplacement source réel (pour le mouvement)
+                    if ($sourceId === null) {
+                        $sourceId = $stockLigne->emplacement_id;
+                    }
+
+                    $reste -= $preleve;
+                }
             } else {
                 if (!$equipementId) {
                     throw ValidationException::withMessages([
@@ -234,18 +252,7 @@ class StockMovementService
     }
 
     /**
-     * Changer la situation d'un matériel :
-     * 1. En stock -> En utilisation (Mise en utilisation)
-     * 2. En utilisation -> En stock (Retour en stock)
-     * 3. En stock -> En panne (Déclaration de panne)
-     * 4. En utilisation -> En panne (Déclaration de panne)
-     * 5. En panne -> En stock (Remise en service avec confirmation)
-     * 6. En panne -> En utilisation (Remise en service avec confirmation)
-     *
-     * Règles absolues :
-     * - Quantité totale = En stock + En utilisation + En panne.
-     * - Ne modifie jamais le total global du produit (conservation stricte des unités).
-     * - Enregistre automatiquement la traçabilité dans l'historique des mouvements.
+     * Changer la situation d'un matériel.
      */
     public function changerSituation(array $data, User $user): Mouvement
     {
@@ -257,7 +264,6 @@ class StockMovementService
             $sourceEmplacementId = $data['emplacement_source_id'] ?? null;
             $destEmplacementId = $data['emplacement_destination_id'] ?? $sourceEmplacementId;
 
-            // 1. Validation de base
             if ($quantite <= 0) {
                 throw ValidationException::withMessages([
                     'quantite' => 'La quantité à déplacer doit être un entier strictement supérieur à zéro.',
@@ -282,7 +288,6 @@ class StockMovementService
                 ]);
             }
 
-            // Confirmation si remise en service depuis 'en_panne'
             if ($situationDepart === Stock::SITUATION_EN_PANNE) {
                 $isConfirmed = !empty($data['confirme_fonctionnel']) && ($data['confirme_fonctionnel'] === true || $data['confirme_fonctionnel'] === '1' || $data['confirme_fonctionnel'] === 1);
                 if (!$isConfirmed) {
@@ -292,7 +297,7 @@ class StockMovementService
                 }
             }
 
-            // 2. Trouver et verrouiller le stock source
+            // 🔧 CORRIGÉ : même logique de requête (NULL inclus + emplacement optionnel)
             $querySource = Stock::where('produit_id', $produit->id)
                 ->where(function ($q) use ($situationDepart) {
                     if ($situationDepart === Stock::SITUATION_EN_STOCK) {
@@ -316,11 +321,9 @@ class StockMovementService
                 ]);
             }
 
-            // Décrémenter la source
             $sourceStock->quantite -= $quantite;
             $sourceStock->save();
 
-            // 3. Incrémenter la destination
             $targetLocationId = $destEmplacementId ?: ($sourceStock ? $sourceStock->emplacement_id : $this->getDefaultEmplacementId());
 
             $destStock = Stock::updateOrCreate(
@@ -340,7 +343,6 @@ class StockMovementService
             $destStock->quantite += $quantite;
             $destStock->save();
 
-            // 4. Déterminer le type précis du mouvement
             $typeMouvement = match (true) {
                 $situationDepart === Stock::SITUATION_EN_STOCK && $situationArrivee === Stock::SITUATION_EN_UTILISATION => Mouvement::TYPE_MISE_UTILISATION,
                 $situationDepart === Stock::SITUATION_EN_UTILISATION && $situationArrivee === Stock::SITUATION_EN_STOCK => Mouvement::TYPE_RETOUR_STOCK,
@@ -349,7 +351,6 @@ class StockMovementService
                 default => Mouvement::TYPE_CHANGEMENT_SITUATION,
             };
 
-            // 5. Enregistrer le mouvement dans l'historique
             $mvt = Mouvement::create([
                 'reference' => Mouvement::generateReference(),
                 'type' => $typeMouvement,
@@ -367,7 +368,6 @@ class StockMovementService
                 'date_mouvement' => $data['date_mouvement'] ?? now()->toDateString(),
             ]);
 
-            // 6. Journaliser l'activité
             $departNom = Stock::SITUATIONS[$situationDepart] ?? $situationDepart;
             $arriveeNom = Stock::SITUATIONS[$situationArrivee] ?? $situationArrivee;
             $this->activityLogger->log(
@@ -434,11 +434,9 @@ class StockMovementService
                     ]);
                 }
 
-                // Decrement source
                 $sourceStock->quantite -= $quantite;
                 $sourceStock->save();
 
-                // Increment destination preserving the same situation
                 $destStock = Stock::firstOrCreate(
                     [
                         'produit_id' => $produit->id,

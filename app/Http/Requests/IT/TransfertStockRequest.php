@@ -49,7 +49,6 @@ class TransfertStockRequest extends FormRequest
             'date_mouvement' => [
                 'required',
                 'date',
-                'before_or_equal:today',
             ],
         ];
     }
