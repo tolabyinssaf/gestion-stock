@@ -165,32 +165,7 @@
             </div>
         @endif
 
-        <!-- Barre d'actions -->
-        <div class="mb-6 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3">
-            <a
-                href="{{ route('it.stocks.correction') }}"
-                class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-white text-content text-xs font-semibold shadow-[0_2px_10px_rgba(2,45,119,0.08)] hover:shadow-[0_4px_16px_rgba(2,45,119,0.14)] transition-all"
-            >
-                {!! $svg('wrench', 'w-4 h-4 text-[#FE7A04]') !!}
-                Correction
-            </a>
-            <button
-                type="button"
-                @click="openSituationModal({
-                    id: {{ $tousProduits->first()?->id ?? 'null' }},
-                    nom: '{{ addslashes($tousProduits->first()?->nom ?? 'Matériel') }}',
-                    ref: '{{ $tousProduits->first()?->reference ?? '' }}',
-                    en_stock: {{ $produits->first()?->quantite_en_stock ?? 0 }},
-                    en_utilisation: {{ $produits->first()?->quantite_en_utilisation ?? 0 }},
-                    en_panne: {{ $produits->first()?->quantite_en_panne ?? 0 }},
-                    total: {{ $produits->first()?->total_stock ?? 0 }}
-                })"
-                class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-[#0092FD] hover:bg-[#022D77] text-white text-xs font-semibold shadow-[0_6px_16px_rgba(0,146,253,0.35)] transition-colors cursor-pointer"
-            >
-                {!! $svg('arrow-left-right', 'w-4 h-4') !!}
-                Changer la situation
-            </button>
-        </div>
+    
 
         <!-- Alertes de stock -->
         @if (!empty($alertesStock) && count($alertesStock) > 0)
