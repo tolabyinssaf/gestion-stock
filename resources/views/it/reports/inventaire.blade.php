@@ -51,10 +51,8 @@
             </div>
         </div>
 
-        <!-- Filters Form (Consulter avec filtres adaptés) -->
         <div class="bg-white rounded-2xl border border-border p-5 mb-8 shadow-xs">
             <form method="GET" action="{{ route('it.reports.inventaire') }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-                <!-- Search -->
                 <div class="relative">
                     <input
                         type="text"
@@ -65,7 +63,6 @@
                     >
                 </div>
 
-                <!-- Catégorie -->
                 <div>
                     <select name="category_id" class="w-full px-3 py-2.5 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20">
                         <option value="">Toutes catégories</option>
@@ -75,7 +72,6 @@
                     </select>
                 </div>
 
-                <!-- État du stock -->
                 <div>
                     <select name="stock_alert" class="w-full px-3 py-2.5 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20">
                         <option value="">Tous les états</option>
@@ -85,7 +81,6 @@
                     </select>
                 </div>
 
-                <!-- Submit & Reset -->
                 <div class="flex items-center gap-2">
                     <button type="submit" class="w-full px-4 py-2.5 bg-primary text-white rounded-xl text-xs font-semibold hover:bg-primary-light transition-colors">
                         Filtrer
@@ -99,7 +94,6 @@
             </form>
         </div>
 
-        <!-- Table -->
         <x-ui.table
             :headers="['Matériel', 'Catégorie', 'En stock', 'En utilisation', 'En panne', 'Total']"
             :isEmpty="$materiels->isEmpty()"
@@ -115,41 +109,35 @@
                     $total = $m->total_stock;
                 @endphp
                 <tr class="hover:bg-surface/50 transition-colors">
-                    <!-- Matériel -->
                     <td class="px-5 py-3">
                         <div class="text-xs font-bold text-content">{{ $m->nom ?? $m->designation ?? 'N/A' }}</div>
                         <div class="text-[11px] text-content-secondary mt-0.5 font-mono">Réf : {{ $m->reference ?? '-' }}</div>
                     </td>
 
-                    <!-- Catégorie -->
                     <td class="px-5 py-3 text-xs text-content-secondary">
                         <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-surface text-content-secondary border border-border">
                             {{ $m->categorie->nom ?? 'Non classé' }}
                         </span>
                     </td>
 
-                    <!-- En stock -->
                     <td class="px-5 py-3 text-center">
                         <span class="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded font-bold text-xs {{ $enStock > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-surface text-content-secondary' }}">
                             {{ $enStock }}
                         </span>
                     </td>
 
-                    <!-- En utilisation -->
                     <td class="px-5 py-3 text-center">
                         <span class="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded font-bold text-xs {{ $enUtil > 0 ? 'bg-blue-50 text-primary border border-blue-200' : 'bg-surface text-content-secondary' }}">
                             {{ $enUtil }}
                         </span>
                     </td>
 
-                    <!-- En panne -->
                     <td class="px-5 py-3 text-center">
                         <span class="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded font-bold text-xs {{ $enPanne > 0 ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-surface text-content-secondary' }}">
                             {{ $enPanne }}
                         </span>
                     </td>
 
-                    <!-- Total -->
                     <td class="px-5 py-3 text-center text-xs font-extrabold text-content">
                         {{ $total }}
                     </td>
@@ -163,7 +151,6 @@
             </x-slot:footer>
         </x-ui.table>
 
-        <!-- Modal d'explication de l'envoi Gmail -->
         <div
             x-show="showSendModal"
             class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-2xs flex items-center justify-center p-4"
@@ -229,11 +216,9 @@
                 triggerSend() {
                     this.showSendModal = false;
 
-                    // 1. URL PDF avec les mêmes filtres que la page courante
                     const pdfUrl = '{{ request()->fullUrlWithQuery(['export' => 'pdf']) }}';
                     window.open(pdfUrl, '_blank');
 
-                    // 2. Appel JSON pour récupérer l'URL Gmail
                     const apiUrl = '{{ request()->fullUrlWithQuery(['action' => 'get_gmail_url']) }}';
                     fetch(apiUrl, {
                         headers: {

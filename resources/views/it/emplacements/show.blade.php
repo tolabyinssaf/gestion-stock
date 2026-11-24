@@ -67,7 +67,6 @@
             </div>
         </div>
 
-        <!-- Section 1: Équipements individuels localisés ici -->
         <div class="mb-10">
             <div class="flex items-center justify-between mb-4">
                 <div>
@@ -120,7 +119,6 @@
             </x-ui.table>
         </div>
 
-        <!-- Section 2: Consommables et accessoires stockés ici -->
         <div>
             <div class="flex items-center justify-between mb-4">
                 <div>

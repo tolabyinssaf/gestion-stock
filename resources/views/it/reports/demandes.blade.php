@@ -1,7 +1,6 @@
 <x-layouts.dashboard title="Rapport : Demandes de matériel" :breadcrumbs="['Rapports & Exports' => route('it.reports.index'), 'Demandes de matériel' => null]">
 
     <div>
-        <!-- Header -->
         <div class="mb-8 p-6 bg-white rounded-2xl border border-border shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div class="flex items-start gap-4">
                 <div class="w-12 h-12 rounded-xl bg-blue-50 text-primary flex items-center justify-center flex-shrink-0">
@@ -34,7 +33,6 @@
             </div>
         </div>
 
-        <!-- Filters Form -->
         <div class="bg-white rounded-2xl border border-border p-5 mb-8 shadow-xs">
             <form method="GET" action="{{ route('it.reports.demandes') }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
                 <div class="relative">
@@ -100,7 +98,6 @@
             </form>
         </div>
 
-        <!-- Table -->
         <x-ui.table
             :headers="['Référence', 'Matériel demandé', 'Quantité', 'Motif', 'Priorité', 'Date de création', 'Statut', 'Actions']"
             :isEmpty="$demandes->isEmpty()"

@@ -16,7 +16,6 @@
         class="max-w-4xl mx-auto"
     >
 
-        <!-- Flash Validation Errors -->
         @if ($errors->any())
             <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-800 text-sm">
                 <div class="flex items-center gap-2 mb-2 font-semibold">
@@ -31,7 +30,6 @@
             </div>
         @endif
 
-        <!-- Incoherence Alert (Alpine dynamic) -->
         <div
             x-show="isIncoherent"
             x-transition
@@ -70,7 +68,6 @@
         >
             @csrf
 
-            <!-- SECTION 1: IDENTIFICATION & MODÈLE -->
             <div class="bg-white rounded-2xl border border-border p-6 sm:p-8 shadow-xs">
                 <div class="flex items-center gap-3 pb-5 mb-6 border-b border-border">
                     <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
@@ -83,7 +80,6 @@
                 </div>
 
                 <div class="space-y-6">
-                    <!-- Produit Select -->
                     <div>
                         <label for="produit_id" class="block text-xs font-bold text-content uppercase tracking-wider mb-2">
                             Modèle du catalogue (Suivi sérialisé) <span class="text-red-500">*</span>
@@ -107,7 +103,6 @@
                         @enderror
                     </div>
 
-                    <!-- Selected Product Dynamic Card (Alpine.js) -->
                     <template x-if="selectedProduit">
                         <div class="p-4 rounded-xl bg-surface border border-border flex items-center gap-4 transition-all">
                             <div class="w-14 h-14 rounded-xl bg-white border border-border overflow-hidden flex items-center justify-center flex-shrink-0">
@@ -137,7 +132,6 @@
                     </template>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-5 pt-4 border-t border-border">
-                        <!-- Code d'inventaire -->
                         <div>
                             <label for="code_inventaire" class="block text-xs font-bold text-content uppercase tracking-wider mb-2">
                                 Code d'inventaire interne <span class="text-red-500">*</span>
@@ -157,7 +151,6 @@
                             @enderror
                         </div>
 
-                        <!-- Numéro de série -->
                         <div>
                             <label for="numero_serie" class="block text-xs font-bold text-content uppercase tracking-wider mb-2">
                                 Numéro de série (S/N)
@@ -196,7 +189,6 @@
                 </div>
             </div>
 
-            <!-- SECTION 2: SITUATION & EMPLACEMENT -->
             <div class="bg-white rounded-2xl border border-border p-6 sm:p-8 shadow-xs">
                 <div class="flex items-center gap-3 pb-5 mb-6 border-b border-border">
                     <div class="w-10 h-10 rounded-xl bg-accent/10 text-accent flex items-center justify-center flex-shrink-0">
@@ -209,7 +201,6 @@
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-                    <!-- État physique -->
                     <div>
                         <label for="etat_physique" class="block text-xs font-bold text-content uppercase tracking-wider mb-2">
                             État physique <span class="text-red-500">*</span>
@@ -279,7 +270,6 @@
                 </div>
             </div>
 
-            <!-- SECTION 3: INFORMATIONS COMPLÉMENTAIRES -->
             <div class="bg-white rounded-2xl border border-border p-6 sm:p-8 shadow-xs">
                 <div class="flex items-center gap-3 pb-5 mb-6 border-b border-border">
                     <div class="w-10 h-10 rounded-xl bg-blue-50 text-primary-light flex items-center justify-center flex-shrink-0">

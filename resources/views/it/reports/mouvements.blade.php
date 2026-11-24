@@ -1,7 +1,6 @@
 <x-layouts.dashboard title="Rapport des mouvements" :breadcrumbs="['Rapports & Exports' => route('it.reports.index'), 'Rapport des mouvements' => null]">
 
     <div x-data="rapportMouvementsView()">
-        <!-- Header -->
         <div class="mb-8 p-6 bg-white rounded-2xl border border-border shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div class="flex items-start gap-4">
                 <div class="w-12 h-12 rounded-xl bg-accent/10 text-accent flex items-center justify-center flex-shrink-0">
@@ -15,9 +14,7 @@
                 </div>
             </div>
 
-            <!-- Actions : Exporter (Excel/PDF) & Envoyer (Gmail) -->
             <div class="flex items-center gap-2.5 flex-wrap self-start md:self-center">
-                <!-- Exporter Excel -->
                 <a
                     href="{{ request()->fullUrlWithQuery(['export' => 'excel']) }}"
                     class="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition-colors"
@@ -27,7 +24,6 @@
                     Exporter Excel
                 </a>
 
-                <!-- Exporter PDF -->
                 <a
                     href="{{ request()->fullUrlWithQuery(['export' => 'pdf']) }}"
                     target="_blank"
@@ -38,7 +34,6 @@
                     Imprimer / PDF
                 </a>
 
-                <!-- Envoyer par Gmail -->
                 <button
                     type="button"
                     @click="openSendModal()"
@@ -51,10 +46,8 @@
             </div>
         </div>
 
-        <!-- Filters Form (Consulter avec filtres adaptés) -->
         <div class="bg-white rounded-2xl border border-border p-5 mb-8 shadow-xs">
             <form method="GET" action="{{ route('it.reports.mouvements') }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3.5">
-                <!-- Search -->
                 <div class="relative">
                     <input
                         type="text"
@@ -65,7 +58,6 @@
                     >
                 </div>
 
-                <!-- Type d'opération -->
                 <div>
                     <select name="type" class="w-full px-3 py-2.5 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20">
                         <option value="">Tous types d'opération</option>
@@ -80,7 +72,6 @@
                     </select>
                 </div>
 
-                <!-- Situation départ -->
                 <div>
                     <select name="situation_depart" class="w-full px-3 py-2.5 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20">
                         <option value="">Situation départ (toutes)</option>
@@ -90,7 +81,6 @@
                     </select>
                 </div>
 
-                <!-- Situation arrivée -->
                 <div>
                     <select name="situation_arrivee" class="w-full px-3 py-2.5 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20">
                         <option value="">Situation arrivée (toutes)</option>
@@ -100,13 +90,11 @@
                     </select>
                 </div>
 
-                <!-- Date début & fin -->
                 <div class="flex items-center gap-1.5">
                     <input type="date" name="date_debut" value="{{ request('date_debut') }}" class="w-1/2 px-2 py-2.5 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20" title="Date début">
                     <input type="date" name="date_fin" value="{{ request('date_fin') }}" class="w-1/2 px-2 py-2.5 bg-surface/50 border border-border rounded-xl text-xs text-content focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20" title="Date fin">
                 </div>
 
-                <!-- Submit & Reset -->
                 <div class="flex items-center gap-2">
                     <button type="submit" class="w-full px-4 py-2.5 bg-primary text-white rounded-xl text-xs font-semibold hover:bg-primary-light transition-colors">
                         Filtrer
@@ -120,7 +108,6 @@
             </form>
         </div>
 
-        <!-- Table -->
         <x-ui.table
             :headers="['Date', 'Matériel', 'Opération', 'Situation départ → arrivée', 'Quantité', 'Utilisateur', 'Motif']"
             :isEmpty="$mouvements->isEmpty()"
@@ -130,26 +117,22 @@
         >
             @foreach ($mouvements as $m)
                 <tr class="hover:bg-surface/50 transition-colors">
-                    <!-- Date -->
                     <td class="px-5 py-3 whitespace-nowrap text-xs text-content-secondary">
                         <span class="font-medium text-content">{{ $m->date_mouvement ? $m->date_mouvement->format('d/m/Y') : '-' }}</span>
                         <div class="text-[10px] font-mono text-content-secondary mt-0.5">{{ $m->reference }}</div>
                     </td>
 
-                    <!-- Produit -->
                     <td class="px-5 py-3 text-xs">
                         <div class="font-bold text-content">{{ $m->produit->nom ?? $m->produit->designation ?? '-' }}</div>
                         <div class="text-[11px] font-mono text-content-secondary">Réf: {{ $m->produit->reference ?? '-' }}</div>
                     </td>
 
-                    <!-- Type d'opération -->
                     <td class="px-5 py-3 whitespace-nowrap text-xs">
                         <span class="inline-flex items-center gap-1 font-semibold text-content bg-surface px-2 py-0.5 rounded-full text-[11px] border border-border">
                             {{ $m->type_label ?? ucfirst($m->type) }}
                         </span>
                     </td>
 
-                    <!-- Situation départ -> arrivée -->
                     <td class="px-5 py-3 whitespace-nowrap text-xs">
                         @if ($m->situation_depart || $m->situation_arrivee)
                             <div class="flex items-center gap-1">
@@ -162,7 +145,6 @@
                         @endif
                     </td>
 
-                    <!-- Quantité -->
                     <td class="px-5 py-3 whitespace-nowrap text-xs font-bold text-content">
                         @if ($m->type === 'entree')
                             <span class="text-emerald-700">+{{ $m->quantite }}</span>
@@ -174,12 +156,10 @@
                         <span class="text-[11px] font-normal text-content-secondary">unité(s)</span>
                     </td>
 
-                    <!-- Utilisateur -->
                     <td class="px-5 py-3 whitespace-nowrap text-xs text-content">
                         {{ $m->user->name ?? 'Système' }}
                     </td>
 
-                    <!-- Motif -->
                     <td class="px-5 py-3 text-xs text-content-secondary max-w-xs truncate" title="{{ $m->motif }}">
                         {{ $m->motif ?? '-' }}
                     </td>
@@ -193,7 +173,6 @@
             </x-slot:footer>
         </x-ui.table>
 
-        <!-- Modal d'explication de l'envoi Gmail -->
         <div
             x-show="showSendModal"
             class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-2xs flex items-center justify-center p-4"
@@ -259,11 +238,9 @@
                 triggerSend() {
                     this.showSendModal = false;
 
-                    // 1. URL PDF avec les mêmes filtres que la page courante
                     const pdfUrl = '{{ request()->fullUrlWithQuery(['export' => 'pdf']) }}';
                     window.open(pdfUrl, '_blank');
 
-                    // 2. Appel JSON pour récupérer l'URL Gmail
                     const apiUrl = '{{ request()->fullUrlWithQuery(['action' => 'get_gmail_url']) }}';
                     fetch(apiUrl, {
                         headers: {

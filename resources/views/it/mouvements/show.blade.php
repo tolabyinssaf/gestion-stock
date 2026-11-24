@@ -1,7 +1,6 @@
 <x-layouts.dashboard title="Détail du mouvement" :breadcrumbs="['Gestion IT' => null, 'Mouvements' => route('it.mouvements.index'), 'Fiche '.$mouvement->reference => null]">
 
     <div class="max-w-4xl mx-auto">
-        <!-- Header / Back -->
         <div class="mb-8 p-6 bg-white rounded-2xl border border-border shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div class="flex items-center gap-4">
                 <div class="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
@@ -31,9 +30,7 @@
             </div>
         </div>
 
-        <!-- Voucher Details Card -->
         <div class="bg-white rounded-2xl border border-border shadow-xs overflow-hidden mb-8">
-            <!-- Voucher Header -->
             <div class="p-6 sm:p-8 bg-surface/50 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <span class="text-[11px] font-bold text-content-secondary uppercase tracking-wider block">Type d'opération</span>
@@ -71,7 +68,6 @@
             </div>
 
             <div class="p-6 sm:p-8 space-y-6">
-                <!-- Grid: Article & Quantité -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="p-5 rounded-xl border border-border bg-white">
                         <span class="text-xs font-bold text-content-secondary uppercase tracking-wider block mb-2">Matériel concerné</span>
@@ -129,7 +125,6 @@
                     </div>
                 </div>
 
-                <!-- Grid: Traçabilité & Justification -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-border">
                     <div>
                         <span class="text-xs font-bold text-content-secondary uppercase tracking-wider block mb-1">Motif de l'opération</span>
@@ -155,7 +150,6 @@
                     @endif
                 </div>
 
-                <!-- Footer Audit info -->
                 <div class="pt-6 border-t border-border text-xs text-content-secondary flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
                         Identifiant d'audit : <span class="font-mono text-content font-semibold">#{{ $mouvement->id }}</span>

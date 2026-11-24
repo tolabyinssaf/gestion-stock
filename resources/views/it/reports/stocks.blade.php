@@ -1,7 +1,6 @@
 <x-layouts.dashboard title="Rapport : État des stocks" :breadcrumbs="['Rapports & Exports' => route('it.reports.index'), 'État des stocks' => null]">
 
     <div>
-        <!-- Header -->
         <div class="mb-8 p-6 bg-white rounded-2xl border border-border shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div class="flex items-start gap-4">
                 <div class="w-12 h-12 rounded-xl bg-accent/10 text-accent flex items-center justify-center flex-shrink-0">
@@ -15,7 +14,6 @@
                 </div>
             </div>
 
-            <!-- Export Buttons -->
             <div class="flex items-center gap-2.5 flex-wrap self-start md:self-center">
                 <a
                     href="{{ request()->fullUrlWithQuery(['export' => 'excel']) }}"
@@ -35,10 +33,8 @@
             </div>
         </div>
 
-        <!-- Filters Form -->
         <div class="bg-white rounded-2xl border border-border p-5 mb-8 shadow-xs">
             <form method="GET" action="{{ route('it.reports.stocks') }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-                <!-- Search -->
                 <div class="relative">
                     <input
                         type="text"
@@ -69,7 +65,6 @@
                     </select>
                 </div>
 
-                <!-- Submit & Reset -->
                 <div class="flex items-center gap-2">
                     <button type="submit" class="w-full px-4 py-2.5 bg-primary text-white rounded-xl text-xs font-semibold hover:bg-primary-light transition-colors">
                         Filtrer
@@ -83,7 +78,6 @@
             </form>
         </div>
 
-        <!-- Table -->
         <x-ui.table
             :headers="['Matériel', 'Catégorie', 'Quantité disponible', 'État du stock']"
             :isEmpty="$stocks->isEmpty()"
@@ -96,25 +90,21 @@
                     $qte = $prod->total_stock;
                 @endphp
                 <tr class="hover:bg-surface/50 transition-colors">
-                    <!-- Matériel -->
                     <td class="px-5 py-4">
                         <div class="text-xs font-bold text-content">{{ $prod->nom ?? $prod->designation ?? 'N/A' }}</div>
                         <div class="text-[11px] font-mono text-content-secondary mt-0.5">Réf: {{ $prod->reference ?? '-' }}</div>
                     </td>
 
-                    <!-- Catégorie -->
                     <td class="px-5 py-4 whitespace-nowrap text-xs text-content-secondary">
                         <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-surface text-content-secondary border border-border">
                             {{ $prod->categorie->nom ?? 'Non classé' }}
                         </span>
                     </td>
 
-                    <!-- Quantité disponible -->
                     <td class="px-5 py-4 whitespace-nowrap text-xs font-bold {{ $qte === 0 ? 'text-rose-600' : ($qte === 1 ? 'text-accent' : 'text-content') }}">
                         {{ $qte }} unité(s)
                     </td>
 
-                    <!-- État du stock (Règles strictes : >1 Disponible, =1 Stock faible, =0 Rupture) -->
                     <td class="px-5 py-4 whitespace-nowrap text-xs">
                         @if ($qte === 0)
                             <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">

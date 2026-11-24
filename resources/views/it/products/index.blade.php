@@ -415,40 +415,34 @@
                                         </div>
                                     </td>
 
-                                    <!-- Catégorie -->
                                     <td class="py-3.5 px-4 text-content">
                                         <span class="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-medium bg-surface text-content">
                                             {{ $p->categorie->nom ?? 'Non classé' }}
                                         </span>
                                     </td>
 
-                                    <!-- En stock -->
                                     <td class="py-3.5 px-4 text-center">
                                         <span class="inline-flex items-center justify-center min-w-[32px] px-2.5 py-1 rounded-full font-bold text-xs {{ $enStock > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-surface text-content-secondary' }}">
                                             {{ $enStock }}
                                         </span>
                                     </td>
 
-                                    <!-- En utilisation -->
                                     <td class="py-3.5 px-4 text-center">
                                         <span class="inline-flex items-center justify-center min-w-[32px] px-2.5 py-1 rounded-full font-bold text-xs {{ $enUtil > 0 ? 'bg-blue-50 text-primary' : 'bg-surface text-content-secondary' }}">
                                             {{ $enUtil }}
                                         </span>
                                     </td>
 
-                                    <!-- En panne -->
                                     <td class="py-3.5 px-4 text-center">
                                         <span class="inline-flex items-center justify-center min-w-[32px] px-2.5 py-1 rounded-full font-bold text-xs {{ $enPanne > 0 ? 'bg-rose-50 text-rose-700' : 'bg-surface text-content-secondary' }}">
                                             {{ $enPanne }}
                                         </span>
                                     </td>
 
-                                    <!-- Total -->
                                     <td class="py-3.5 px-4 text-center font-extrabold text-content text-sm">
                                         {{ $total }}
                                     </td>
 
-                                    <!-- Actions -->
                                     <td class="py-3.5 px-5 text-right">
                                         <div class="inline-flex items-center gap-1 justify-end">
                                             <a

@@ -80,7 +80,6 @@
 <x-layouts.dashboard title="Historique" :breadcrumbs="['Historique' => null]">
 
     <div>
-        <!-- Messages flash -->
         @if (session('success'))
             <div class="mb-5 p-4 bg-emerald-50 rounded-2xl flex items-center gap-3 text-emerald-800 text-sm">
                 {!! $svg('check-circle', 'w-5 h-5 text-emerald-600 flex-shrink-0') !!}
@@ -88,7 +87,6 @@
             </div>
         @endif
 
-        <!-- Barre d'actions -->
         <div class="mb-6 flex sm:justify-end">
             <a
                 href="{{ route('it.stocks.index') }}"
@@ -99,10 +97,8 @@
             </a>
         </div>
 
-        <!-- Filtres -->
         <div class="bg-white rounded-3xl p-4 sm:p-5 mb-6 shadow-[0_2px_14px_rgba(2,45,119,0.06)]">
             <form method="GET" action="{{ route('it.mouvements.index') }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                <!-- Recherche -->
                 <div class="sm:col-span-2 relative">
                     <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-content-secondary">
                         {!! $svg('search', 'w-4 h-4') !!}
@@ -116,7 +112,6 @@
                     >
                 </div>
 
-                <!-- Type d'opération -->
                 <div>
                     <select
                         name="type"
@@ -135,7 +130,6 @@
                     </select>
                 </div>
 
-                <!-- Situation départ -->
                 <div>
                     <select
                         name="situation_depart"
@@ -149,7 +143,6 @@
                     </select>
                 </div>
 
-                <!-- Situation arrivée -->
                 <div>
                     <select
                         name="situation_arrivee"
@@ -163,7 +156,6 @@
                     </select>
                 </div>
 
-                <!-- Période + boutons -->
                 <div class="sm:col-span-2 lg:col-span-3 flex flex-col sm:flex-row sm:items-center gap-2">
                     <div class="flex items-center gap-2 flex-1">
                         <input
@@ -204,7 +196,6 @@
             </form>
         </div>
 
-        <!-- Liste des mouvements -->
         <div class="bg-white rounded-3xl shadow-[0_2px_14px_rgba(2,45,119,0.06)] overflow-hidden mb-8">
             @if ($mouvements->isEmpty())
                 <div class="p-8 sm:p-12 text-center">
@@ -248,7 +239,6 @@
                     });
                 @endphp
 
-                <!-- Mobile / tablette : cartes -->
                 <div class="lg:hidden p-4 space-y-3">
                     @foreach ($rows as $row)
                         @php $mvt = $row['mvt']; $op = $row['op']; @endphp
@@ -301,7 +291,6 @@
                     @endforeach
                 </div>
 
-                <!-- PC : tableau -->
                 <div class="hidden lg:block overflow-x-auto p-4">
                     <table class="w-full text-left text-xs border-separate border-spacing-0">
                         <thead>
@@ -320,19 +309,16 @@
                             @foreach ($rows as $row)
                                 @php $mvt = $row['mvt']; $op = $row['op']; @endphp
                                 <tr class="hover:bg-surface/50 transition-colors [&>td]:border-b [&>td]:border-border/50 last:[&>td]:border-b-0">
-                                    <!-- Icône du produit -->
                                     <td class="py-3.5 px-4">
                                         <div class="w-10 h-10 rounded-full bg-[#0092FD]/10 text-[#0092FD] flex items-center justify-center">
                                             {!! $svg($iconFor($mvt->produit)) !!}
                                         </div>
                                     </td>
 
-                                    <!-- Référence -->
                                     <td class="py-3.5 px-4 whitespace-nowrap">
                                         <span class="font-mono text-xs font-bold text-content">{{ $mvt->reference }}</span>
                                     </td>
 
-                                    <!-- Opération -->
                                     <td class="py-3.5 px-4 whitespace-nowrap">
                                         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold {{ $op[1] }}">
                                             {!! $svg($op[2], 'w-3.5 h-3.5') !!}
@@ -340,7 +326,6 @@
                                         </span>
                                     </td>
 
-                                    <!-- Matériel -->
                                     <td class="py-3.5 px-4">
                                         <div class="text-xs font-semibold text-content">
                                             {{ $mvt->produit->nom ?? $mvt->produit->designation ?? 'N/A' }}
@@ -350,7 +335,6 @@
                                         </div>
                                     </td>
 
-                                    <!-- Situation départ -> arrivée -->
                                     <td class="py-3.5 px-4 whitespace-nowrap text-xs">
                                         @if ($mvt->situation_depart || $mvt->situation_arrivee)
                                             <div class="flex items-center gap-1.5">
@@ -363,7 +347,6 @@
                                         @endif
                                     </td>
 
-                                    <!-- Quantité -->
                                     <td class="py-3.5 px-4 whitespace-nowrap text-xs font-bold text-content">
                                         @if ($row['isEntree'])
                                             <span class="text-emerald-600 font-bold">+{{ $mvt->quantite }}</span>
@@ -374,14 +357,12 @@
                                         @endif
                                     </td>
 
-                                    <!-- Motif -->
                                     <td class="py-3.5 px-4 text-xs">
                                         <div class="text-content font-medium truncate max-w-xs" title="{{ $mvt->motif }}">
                                             {{ $mvt->motif ?? '-' }}
                                         </div>
                                     </td>
 
-                                    <!-- Date & Opérateur -->
                                     <td class="py-3.5 px-4 whitespace-nowrap text-xs">
                                         <div class="text-content font-medium">
                                             {{ $mvt->user->name ?? 'Système' }}
