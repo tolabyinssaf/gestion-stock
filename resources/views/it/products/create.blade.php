@@ -6,6 +6,7 @@
         'check'          => 'M20 6 9 17l-5-5',
         'plus'           => 'M5 12h14|M12 5v14',
         'package-plus'   => 'M16 16h6|M19 13v6|M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14|m7.5 4.27 9 5.15|M3.29 7 12 12l8.71-5|M12 22V12',
+        'image'          => 'M3 3h18v18H3z|M9 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4|m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21',
     ];
     $svg = function (string $name, string $class = 'w-5 h-5') use ($icons) {
         $paths = '';
@@ -61,6 +62,7 @@
         <form
             method="POST"
             action="{{ route('it.products.store') }}"
+            enctype="multipart/form-data"
             class="space-y-5 sm:space-y-6"
         >
             @csrf
@@ -142,6 +144,44 @@
                     </div>
                 </div>
 
+                <!-- Image du produit -->
+                <div class="pt-5 border-t border-border/60">
+                    <label for="photo" class="block text-xs font-bold text-content uppercase tracking-wider mb-2">
+                        Image du produit <span class="text-content-secondary font-normal text-[11px] normal-case">(facultative)</span>
+                    </label>
+
+                    <div class="flex items-start gap-4">
+                        <!-- Aperçu -->
+                        <div class="w-24 h-24 rounded-2xl bg-surface/60 border border-border/60 flex items-center justify-center overflow-hidden flex-shrink-0">
+                            <img id="photo-preview" src="" alt="" class="w-full h-full object-cover hidden">
+                            <svg id="photo-placeholder" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+                                 class="w-8 h-8 text-content-secondary/50">
+                                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                <circle cx="9" cy="9" r="2"/>
+                                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                            </svg>
+                        </div>
+
+                        <!-- Input -->
+                        <div class="flex-1 min-w-0">
+                            <input
+                                type="file"
+                                id="photo"
+                                name="photo"
+                                accept="image/png,image/jpeg,image/jpg,image/webp"
+                                class="block w-full text-xs text-content file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-[#0092FD]/10 file:text-[#0092FD] hover:file:bg-[#0092FD]/20 file:cursor-pointer cursor-pointer bg-surface/60 rounded-full border border-transparent focus:outline-none focus:ring-2 focus:ring-[#0092FD]/25 @error('photo') border-red-300 ring-2 ring-red-100 @enderror"
+                            />
+                            <p class="text-[11px] text-content-secondary mt-1.5 px-2">
+                                Formats acceptés : JPG, PNG, WEBP. Taille max : 2 Mo.
+                            </p>
+                            @error('photo')
+                                <p class="text-[11px] text-red-600 mt-1.5 px-2">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-5 border-t border-border/60">
                     <div>
                         <label for="quantite_initiale" class="block text-xs font-bold text-content uppercase tracking-wider mb-2">
@@ -202,5 +242,43 @@
             </div>
         </form>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const input = document.getElementById('photo');
+            const preview = document.getElementById('photo-preview');
+            const placeholder = document.getElementById('photo-placeholder');
+
+            if (!input || !preview || !placeholder) return;
+
+            input.addEventListener('change', function (e) {
+                const file = e.target.files && e.target.files[0];
+
+                if (file) {
+                    // Vérification taille (2 Mo max) côté client (feedback immédiat)
+                    if (file.size > 2 * 1024 * 1024) {
+                        alert('L\'image dépasse la taille maximale de 2 Mo.');
+                        input.value = '';
+                        preview.src = '';
+                        preview.classList.add('hidden');
+                        placeholder.classList.remove('hidden');
+                        return;
+                    }
+
+                    const reader = new FileReader();
+                    reader.onload = function (ev) {
+                        preview.src = ev.target.result;
+                        preview.classList.remove('hidden');
+                        placeholder.classList.add('hidden');
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    preview.src = '';
+                    preview.classList.add('hidden');
+                    placeholder.classList.remove('hidden');
+                }
+            });
+        });
+    </script>
 
 </x-layouts.dashboard>

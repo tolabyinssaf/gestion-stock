@@ -211,15 +211,13 @@
                             </div>
 
                             <a
-                                href="{{ $alerte['gmail_url'] }}"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold text-white transition-colors flex-shrink-0 {{ $isRupture ? 'bg-red-500 hover:bg-red-600' : 'bg-[#FE7A04] hover:bg-[#e66d00]' }}"
-                                title="Ouvrir Gmail avec le message prérempli"
-                            >
-                                {!! $svg('mail', 'w-4 h-4') !!}
-                                <span>Demander</span>
-                            </a>
+    href="{{ route('it.demandes.create', ['produit_id' => $alerte['produit']->id]) }}"
+    class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold text-white transition-colors flex-shrink-0 {{ $isRupture ? 'bg-red-500 hover:bg-red-600' : 'bg-[#FE7A04] hover:bg-[#e66d00]' }}"
+    title="Créer une demande de réapprovisionnement"
+>
+    {!! $svg('mail', 'w-4 h-4') !!}
+    <span>Demander</span>
+</a>
                         </div>
                     @endforeach
                 </div>

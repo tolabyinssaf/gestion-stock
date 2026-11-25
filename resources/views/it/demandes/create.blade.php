@@ -73,77 +73,91 @@
                 if (!p) return 'Demande de matériel informatique';
                 return 'Demande de matériel informatique — ' + p.designation;
             },
-            getGeneratedBody() {
-                const p = this.getSelectedProduct();
-                const designation = p ? p.designation : '[Produit non sélectionné]';
-                const ref = p ? p.reference : '-';
-                const cat = p ? p.categorie : '-';
-                const enStock = p ? p.enStock : 0;
-                const enUtil = p ? p.enUtil : 0;
-                const enPanne = p ? p.enPanne : 0;
-                const total = p ? p.totalStock : 0;
-                const seuil = p ? p.seuilMin : 0;
+           getGeneratedBody() {
 
-                let prioriteTxt = 'Normale';
-                if (this.priorite === 'importante') prioriteTxt = 'Importante';
-                if (this.priorite === 'urgente') prioriteTxt = 'Urgente';
+    const p = this.getSelectedProduct();
 
-                const destNom = this.directeurNom ? this.directeurNom.trim() : 'Direction Générale';
-                const destEmail = this.directeurEmail ? this.directeurEmail.trim() : '[Non renseigné]';
+    const designation = p
+        ? p.designation
+        : '[Produit non sélectionné]';
 
-                let lines = [
-                    'Bonjour ' + destNom + ',',
-                    '',
-                    'Je vous soumets une demande de matériel informatique :',
-                    '',
-                    '■ MATÉRIEL DEMANDÉ :',
-                    '- Produit : ' + designation,
-                    '- Référence : ' + ref,
-                    '- Catégorie : ' + cat,
-                    '- Quantité demandée : ' + this.quantite + ' unité(s)',
-                    '- Priorité : ' + prioriteTxt,
-                ];
+    const enStock = p ? p.enStock : 0;
 
-                if (this.prixEstime && parseFloat(this.prixEstime) > 0) {
-                    const pe = parseFloat(this.prixEstime);
-                    lines.push('- Estimation du prix unitaire : ' + pe.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' € HT');
-                    if (this.quantite > 1) {
-                        const totalPe = pe * this.quantite;
-                        lines.push('- Montant total estimé : ' + totalPe.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' € HT');
-                    }
-                }
+    // Niveau de priorité
 
-                lines.push('');
-                lines.push('■ SITUATION DU STOCK ACTUEL :');
-                lines.push('- En stock : ' + enStock + ' unité(s)');
-                lines.push('- En utilisation : ' + enUtil + ' unité(s)');
-                lines.push('- En panne : ' + enPanne + ' unité(s)');
-                lines.push('- Total : ' + total + ' unité(s)');
+    let prioriteTxt = 'Normale';
 
-                if (seuil > 0) {
-                    lines.push('- Seuil d\'alerte : ' + seuil + ' unité(s)');
-                }
+    if (this.priorite === 'importante') {
+        prioriteTxt = 'Importante';
+    }
 
-                if (this.motif && this.motif.trim().length > 0) {
-                    lines.push('');
-                    lines.push('■ MOTIF DE LA DEMANDE :');
-                    lines.push(this.motif.trim());
-                }
+    if (this.priorite === 'urgente') {
+        prioriteTxt = 'Urgente';
+    }
 
-                if (this.commentaire && this.commentaire.trim().length > 0) {
-                    lines.push('');
-                    lines.push('■ OBSERVATIONS :');
-                    lines.push(this.commentaire.trim());
-                }
+    // Message de la demande
 
-                lines.push('');
-                lines.push('Je vous remercie de bien vouloir étudier cette demande.');
-                lines.push('');
-                lines.push('Cordialement,');
-                lines.push(this.userName);
+    let lines = [
+        'Bonjour,',
+        '',
+        'Je vous adresse une demande de matériel informatique pour validation.',
+        '',
+        'Matériel demandé :',
+        '',
+        '- Produit : ' + designation,
+        '- Quantité : ' + this.quantite + ' unité(s)',
+        '- Stock disponible : ' + enStock + ' unité(s)',
+        '- Priorité : ' + prioriteTxt
+    ];
 
-                return lines.join('\n');
-            }
+    // Prix unitaire et montant total estimés
+
+    if (this.prixEstime && parseFloat(this.prixEstime) > 0) {
+
+        const prixUnitaire = parseFloat(this.prixEstime);
+        const total = prixUnitaire * this.quantite;
+
+        const formatPrix = (prix) => prix.toLocaleString('fr-FR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }) + ' € HT';
+
+        lines.push(
+            '- Prix unitaire estimé : ' + formatPrix(prixUnitaire)
+        );
+
+        lines.push(
+            '- Montant total estimé : ' + formatPrix(total)
+        );
+    }
+
+    // Motif de la demande
+
+    if (this.motif && this.motif.trim()) {
+
+        lines.push(
+            '- Motif : ' + this.motif.trim()
+        );
+    }
+
+    // Informations complémentaires
+
+    if (this.commentaire && this.commentaire.trim()) {
+
+        lines.push(
+            '- Observations : ' + this.commentaire.trim()
+        );
+    }
+
+    // Formule de politesse
+
+    lines.push('');
+    lines.push('Merci par avance pour votre retour.');
+    lines.push('');
+    lines.push('Cordialement,');
+
+    return lines.join('\n');
+}
         }"
     >
         <!-- En-tête -->

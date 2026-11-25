@@ -11,6 +11,7 @@ use App\Models\Stock;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
@@ -151,6 +152,7 @@ class ProductController extends Controller
             $validated['reference'] = 'REF-' . strtoupper(uniqid());
         }
 
+        // Gestion de l'upload d'image
         if ($request->hasFile('photo')) {
             $path = $request->file('photo')->store('products', 'public');
             $validated['photo'] = $path;
@@ -162,7 +164,12 @@ class ProductController extends Controller
                     @mkdir(dirname($publicTarget), 0777, true);
                 }
                 @copy(storage_path('app/public/' . $path), $publicTarget);
-            } catch (\Throwable $e) {}
+            } catch (\Throwable $e) {
+                // Silently ignore mirror copy failures
+            }
+        } else {
+            // Évite d'écrire une valeur null/vide dans la colonne photo
+            unset($validated['photo']);
         }
 
         $quantiteInitiale = (int) ($request->input('quantite_initiale', 0));
@@ -176,7 +183,7 @@ class ProductController extends Controller
                 )->id;
         }
 
-        $produit = \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $quantiteInitiale, $emplacementId) {
+        DB::transaction(function () use ($validated, $quantiteInitiale, $emplacementId) {
             $produit = Produit::create($validated);
 
             // Créer la ligne de stock pour ce produit en situation 'en_stock'
@@ -210,8 +217,6 @@ class ProductController extends Controller
                     'date_mouvement' => now()->toDateString(),
                 ]);
             }
-
-            return $produit;
         });
 
         return redirect()
@@ -251,11 +256,15 @@ class ProductController extends Controller
         $validated['modele'] = $validated['modele'] ?? '';
 
         if ($request->hasFile('photo')) {
-            if ($product->photo && Storage::disk('public')->exists($product->photo)) {
-                Storage::disk('public')->delete($product->photo);
-            }
-            if ($product->photo && file_exists(public_path('storage/' . $product->photo))) {
-                @unlink(public_path('storage/' . $product->photo));
+            // Supprimer l'ancienne image (disque public + miroir)
+            if ($product->photo) {
+                if (Storage::disk('public')->exists($product->photo)) {
+                    Storage::disk('public')->delete($product->photo);
+                }
+                $publicOld = public_path('storage/' . $product->photo);
+                if (file_exists($publicOld)) {
+                    @unlink($publicOld);
+                }
             }
 
             $path = $request->file('photo')->store('products', 'public');
@@ -268,7 +277,12 @@ class ProductController extends Controller
                     @mkdir(dirname($publicTarget), 0777, true);
                 }
                 @copy(storage_path('app/public/' . $path), $publicTarget);
-            } catch (\Throwable $e) {}
+            } catch (\Throwable $e) {
+                // Silently ignore mirror copy failures
+            }
+        } else {
+            // Conserver l'image existante : ne pas écraser la colonne photo
+            unset($validated['photo']);
         }
 
         $product->update($validated);
@@ -294,8 +308,15 @@ class ProductController extends Controller
      */
     public function destroy(Produit $product): RedirectResponse
     {
-        if ($product->photo && Storage::disk('public')->exists($product->photo)) {
-            Storage::disk('public')->delete($product->photo);
+        // Supprimer l'image associée (disque + miroir public)
+        if ($product->photo) {
+            if (Storage::disk('public')->exists($product->photo)) {
+                Storage::disk('public')->delete($product->photo);
+            }
+            $publicOld = public_path('storage/' . $product->photo);
+            if (file_exists($publicOld)) {
+                @unlink($publicOld);
+            }
         }
 
         $product->delete();
